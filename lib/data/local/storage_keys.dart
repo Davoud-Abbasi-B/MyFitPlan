@@ -1,5 +1,6 @@
 abstract final class StorageKeys {
   static const seeded = 'seeded';
+  static const workoutSeedVersion = 'workout_seed_version';
   static const profile = 'profile';
   static const workouts = 'workouts';
   static const meals = 'meals';

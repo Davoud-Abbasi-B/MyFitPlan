@@ -29,8 +29,7 @@ class WorkoutPlanScreen extends ConsumerWidget {
             itemCount: data.workouts.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final workout = data.workouts[index];
-              return _WorkoutDayCard(workout: workout);
+              return _WorkoutDayCard(workout: data.workouts[index]);
             },
           );
         },
@@ -112,7 +111,8 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
           padding: EdgeInsets.symmetric(vertical: 24),
           child: Center(child: CircularProgressIndicator()),
         ),
-        error: (error, stackTrace) => Text('بارگذاری تمرین انجام نشد.\n$error'),
+        error: (error, stackTrace) =>
+            Text('بارگذاری تمرین انجام نشد.\n$error'),
         data: (log) {
           _maybeSyncController(
             _cardioMinutesController,
@@ -276,14 +276,9 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
     );
   }
 
-  Future<void> _showDayGuide(
-    BuildContext context,
-    WorkoutDay workout,
-  ) {
+  Future<void> _showDayGuide(BuildContext context, WorkoutDay workout) {
     final content = _dayGuideForWorkout(workout);
     final mediaQuery = MediaQuery.of(context);
-    final maxHeight = mediaQuery.size.height * 0.9;
-    final bottomInset = mediaQuery.padding.bottom;
 
     return showModalBottomSheet<void>(
       context: context,
@@ -293,9 +288,14 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
         return SafeArea(
           top: false,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
+            constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.9),
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + bottomInset),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                24 + mediaQuery.padding.bottom,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -500,7 +500,8 @@ class _ExerciseLogEditor extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (exercise.reps != null && exercise.targetDurationSeconds != null)
+                if (exercise.reps != null &&
+                    exercise.targetDurationSeconds != null)
                   const SizedBox(width: 10),
                 if (exercise.targetDurationSeconds != null)
                   Expanded(
@@ -550,26 +551,29 @@ class _ExerciseLogEditor extends ConsumerWidget {
   }
 
   Future<void> _showGuide(BuildContext context, Exercise exercise) {
+    final mediaQuery = MediaQuery.of(context);
+    final tips = exercise.keyTips.isNotEmpty
+        ? exercise.keyTips
+        : [
+            if ((exercise.safetyTip ?? '').trim().isNotEmpty) exercise.safetyTip!,
+          ];
+
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (context) {
-        final mediaQuery = MediaQuery.of(context);
-        final maxHeight = mediaQuery.size.height * 0.88;
-        final bottomInset = mediaQuery.padding.bottom;
-        final tips = exercise.keyTips.isNotEmpty
-            ? exercise.keyTips
-            : [
-                if ((exercise.safetyTip ?? '').trim().isNotEmpty) exercise.safetyTip!,
-              ];
-
         return SafeArea(
           top: false,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
+            constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.88),
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + bottomInset),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                24 + mediaQuery.padding.bottom,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -585,9 +589,7 @@ class _ExerciseLogEditor extends ConsumerWidget {
                   _GuideSection(
                     title: 'نحوه انجام حرکت',
                     child: Text(
-                      exercise.instructionText ??
-                          exercise.guideText ??
-                          exercise.notes,
+                      exercise.instructionText ?? exercise.guideText ?? exercise.notes,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
@@ -641,64 +643,10 @@ class _ExerciseLogEditor extends ConsumerWidget {
       },
     );
   }
-
-  Future<void> _showDayGuideDeprecated(BuildContext context, WorkoutDay workout) {
-    final content = _dayGuideForWorkout(workout);
-    final mediaQuery = MediaQuery.of(context);
-    final maxHeight = mediaQuery.size.height * 0.9;
-    final bottomInset = mediaQuery.padding.bottom;
-
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) {
-        return SafeArea(
-          top: false,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + bottomInset),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${workout.displayScheduleLabel} • ${workout.title}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    content.summary,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                  ),
-                  const SizedBox(height: 14),
-                  ...content.sections.map(
-                    (section) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _GuideSection(
-                        title: section.title,
-                        child: _BulletList(items: section.items),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _ExerciseGuideImage extends StatelessWidget {
-  const _ExerciseGuideImage({
-    required this.exercise,
-  });
+  const _ExerciseGuideImage({required this.exercise});
 
   final Exercise exercise;
 
@@ -712,7 +660,7 @@ class _ExerciseGuideImage extends StatelessWidget {
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width - 32;
         final preferredHeight = width / (4 / 3);
-        final clampedHeight = preferredHeight.clamp(200.0, 220.0);
+        final clampedHeight = preferredHeight.clamp(220.0, 280.0);
 
         return Container(
           width: double.infinity,
@@ -741,9 +689,7 @@ class _ExerciseGuideImage extends StatelessWidget {
 }
 
 class _ExerciseGuidePlaceholder extends StatelessWidget {
-  const _ExerciseGuidePlaceholder({
-    this.label,
-  });
+  const _ExerciseGuidePlaceholder({this.label});
 
   final String? label;
 
@@ -796,9 +742,7 @@ class _GuideSection extends StatelessWidget {
 }
 
 class _BulletList extends StatelessWidget {
-  const _BulletList({
-    required this.items,
-  });
+  const _BulletList({required this.items});
 
   final List<String> items;
 
@@ -853,178 +797,140 @@ class _DayGuideSection {
 }
 
 _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
-  final commonStrengthSections = [
+  final commonSections = [
     const _DayGuideSection(
-      title: 'شدت و پیشرفت',
+      title: 'قانون اجرای برنامه',
       items: [
-        'بیشتر ست‌ها با ۱ تا ۲ تکرار ذخیره تمام شوند.',
-        'وقتی همه ست‌ها با فرم خوب و بالاترین تکرار انجام شد، جلسه بعد کمی وزنه اضافه شود.',
-        'فرم حرکت از سنگین زدن مهم‌تر است.',
-        'درد عضلانی طبیعی است، درد مفصلی هشدار است.',
+        'تمرین پا به هیچ‌وجه سبک یا حذف نشود.',
+        'تمرین شکم آخر تمرین انجام شود، نه اول تمرین.',
+        'شدت شکم مثل عضله معمولی باشد؛ با کنترل و پیشرفت تدریجی.',
+        'هوازی بعد از وزنه و با شدت متوسط انجام شود.',
+        'اگر هر حرکت درد مفصلی داد، همان جلسه جایگزین شود.',
+        'وقتی همه ست‌ها تمیز انجام شد، کمی وزنه یا تکرار اضافه کن.',
+        'اگر روز پایین‌تنه خیلی سنگین شد، هوازی را دوچرخه سبک بزن.',
       ],
     ),
     const _DayGuideSection(
-      title: 'استراحت بین ست‌ها',
+      title: 'شدت و استراحت',
       items: [
-        'حرکات سنگین: ۹۰ تا ۱۲۰ ثانیه',
-        'حرکات سبک‌تر و تک‌مفصلی: ۴۵ تا ۷۵ ثانیه',
+        'حرکات سنگین: استراحت ۹۰ تا ۱۲۰ ثانیه',
+        'حرکات سبک‌تر و تک‌مفصلی: استراحت ۴۵ تا ۷۵ ثانیه',
+        'شدت مناسب یعنی بیشتر ست‌ها با ۱ تا ۲ تکرار ذخیره تمام شوند.',
+        'درد عضلانی طبیعی است؛ درد مفصلی هشدار است.',
+      ],
+    ),
+    const _DayGuideSection(
+      title: 'راهنمای هوازی',
+      items: [
+        'اولویت هوازی: الپتیکال، دوچرخه ثابت، تردمیل شیب ملایم.',
+        'برای روزهای باشگاه، هوازی بعد از وزنه و با شدت متوسط انجام شود.',
+        'اگر پا یا زانو خسته بود، دوچرخه سبک یا الپتیکال انتخاب بهتری است.',
+      ],
+    ),
+    const _DayGuideSection(
+      title: 'هدف ۱۲ هفته‌ای با این برنامه',
+      items: [
+        'وزن: حدود ۸۳.۵ تا ۸۴.۵ کیلو',
+        'دور شکم: حدود ۹۰ تا ۹۳ سانتی‌متر',
+        'قدرت پا: حفظ یا افزایش رکوردها',
+        'فرم شکم: شروع خط افتادن شکم',
+        'هوازی: ۴ جلسه منظم در هفته',
+        'قدم روزانه: ۸۰۰۰ تا ۱۰۰۰۰ قدم',
       ],
     ),
   ];
 
-  final gymCardioSection = const _DayGuideSection(
-    title: 'راهنمای هوازی',
-    items: [
-      '۴ روز در هفته، بعد از تمرین، ۲۰ تا ۲۵ دقیقه هوازی انجام شود.',
-      'شدت متوسط باشد: بتوانی حرف بزنی ولی کمی نفس‌نفس بزنی.',
-      'اولویت با الپتیکال، دوچرخه ثابت و تردمیل با شیب ملایم است.',
-    ],
-  );
-
-  final stepsSection = const _DayGuideSection(
-    title: 'قدم روزانه و آخر هفته',
-    items: [
-      'قدم فعلی: حدود ۷۰۰۰',
-      'هدف: ۸۰۰۰ تا ۹۰۰۰ قدم در روز',
-      'آخر هفته: یک پیاده‌روی آرام ۴۵ تا ۶۰ دقیقه‌ای',
-    ],
-  );
-
   switch (workout.id) {
     case 'day-1':
       return _DayGuideContent(
-        summary: 'تمرکز این روز روی چهارسر، کنترل زانو و شروع قوی هفته است.',
+        summary: 'تمرکز این روز روی چهارسر، کنترل زانو، حجم پا و شکم جلسه ۱ است.',
         sections: [
           const _DayGuideSection(
-            title: 'گرم‌کردن پیشنهادی',
+            title: 'نکات اختصاصی روز ۱',
             items: [
-              'دوچرخه ثابت: ۵ تا ۸ دقیقه',
-              'Bodyweight Squat سبک: ۲×۱۰',
-              'Glute Bridge: ۲×۱۲',
-              'Leg Extension خیلی سبک: ۱×۱۵',
-              'Hip Abduction سبک: ۱×۱۵',
+              'Step-up با ارتفاع کم و کنترل‌شده انجام شود.',
+              'اگر زانو اذیت شد، Step-up همان جلسه حذف شود یا با Leg Press سبک جایگزین شود.',
+              'Plank با فرم خوب ۴۵ تا ۶۰ ثانیه هدف‌گذاری شود.',
+              'برای هوازی انتهای جلسه، شیب ملایم یا الپتیکال مناسب است.',
             ],
           ),
-          const _DayGuideSection(
-            title: 'نکات زانو',
-            items: [
-              'درد تیز یا ماندگار یعنی حرکت باید تغییر کند.',
-              'دامنه اسکوات تا جایی باشد که بدون درد است.',
-              'در Leg Press زانوها داخل نریزند.',
-              'افزایش وزنه تدریجی باشد.',
-              'دوچرخه و الپتیکال معمولاً زانو‌دوست‌تر از دویدن هستند.',
-            ],
-          ),
-          ...commonStrengthSections,
-          const _DayGuideSection(
-            title: 'هوازی بعد از تمرین',
-            items: [
-              'برای این روز ۲۰ تا ۲۵ دقیقه مناسب است.',
-              'اولویت با تردمیل با شیب ملایم یا الپتیکال است.',
-            ],
-          ),
-          stepsSection,
+          ...commonSections,
         ],
       );
     case 'day-2':
       return _DayGuideContent(
-        summary: 'این روز روی فشار و کشش بالاتنه با کنترل شانه و گردن تمرکز دارد.',
+        summary:
+            'این روز روی فشار و کشش بالاتنه تمرکز دارد و در پایان Pallof Press و Reverse Crunch هم اضافه می‌شود.',
         sections: [
-          ...commonStrengthSections,
           const _DayGuideSection(
-            title: 'نکات اجرای بالاتنه',
+            title: 'نکات اختصاصی روز ۲',
             items: [
-              'کتف‌ها در حرکات پرس پایدار بمانند.',
-              'در Face Pull و Row تمرکز روی جمع شدن کتف باشد.',
-              'اگر گردن در Shoulder Press اذیت شد دامنه یا وزنه را کم کن.',
+              'Pallof Press و Reverse Crunch باید بعد از حرکات بازو و قبل از هوازی انجام شوند.',
+              'در پرس‌های سرشانه، گردن و کتف باید آرام و کنترل‌شده بمانند.',
+              'Bench Press در صورت نیاز با Chest Press Machine قابل جایگزینی است.',
             ],
           ),
-          const _DayGuideSection(
-            title: 'هوازی بعد از تمرین',
-            items: [
-              'برای این روز ۲۰ دقیقه هوازی کافی است.',
-              'تردمیل یا الپتیکال انتخاب خوبی هستند.',
-            ],
-          ),
-          stepsSection,
+          ...commonSections,
         ],
       );
     case 'day-4':
       return _DayGuideContent(
-        summary: 'تمرکز این روز روی پشت پا، باسن و ثبات زانو است.',
+        summary: 'تمرکز این روز روی باسن، پشت پا، همسترینگ و شکم جلسه ۲ است.',
         sections: [
           const _DayGuideSection(
-            title: 'گرم‌کردن پیشنهادی',
+            title: 'نکات اختصاصی روز ۳',
             items: [
-              'دوچرخه ثابت یا الپتیکال: ۵ تا ۸ دقیقه',
-              'Bodyweight Squat سبک: ۲×۱۰',
-              'Glute Bridge: ۲×۱۲',
-              'Leg Extension خیلی سبک: ۱×۱۵',
-              'Hip Abduction سبک: ۱×۱۵',
+              'Leg Curl می‌تواند به‌صورت خوابیده یا نشسته اجرا شود.',
+              'Reverse Lunge معمولا از لانج جلو برای زانو مناسب‌تر است.',
+              'اگر پا خیلی خسته بود، هوازی پایانی را با دوچرخه سبک انجام بده.',
             ],
           ),
-          const _DayGuideSection(
-            title: 'نکات زانو',
-            items: [
-              'Reverse Lunge معمولاً از Forward Lunge برای زانو مناسب‌تر است.',
-              'دامنه حرکات تک‌پا بدون درد باشد.',
-              'در صورت حساسیت زانو، شدت را کمتر و کنترل را بیشتر کن.',
-              'افزایش وزنه تدریجی باشد.',
-            ],
-          ),
-          ...commonStrengthSections,
-          const _DayGuideSection(
-            title: 'هوازی بعد از تمرین',
-            items: [
-              'برای این روز ۲۰ تا ۲۵ دقیقه مناسب است.',
-              'دوچرخه ثابت یا الپتیکال اولویت دارند.',
-            ],
-          ),
-          stepsSection,
+          ...commonSections,
         ],
       );
     case 'day-5':
       return _DayGuideContent(
-        summary: 'این روز ترکیبی از بالاتنه و حرکات اصلاحی برای کتف و مرکز بدن است.',
+        summary:
+            'این روز ترکیبی از بالاتنه، حرکات اصلاحی و شکم جلسه ۳ برای ثبات بدن است.',
         sections: [
-          ...commonStrengthSections,
           const _DayGuideSection(
-            title: 'نکات اصلاحی',
+            title: 'نکات اختصاصی روز ۴',
             items: [
-              'در Assisted Pull-up و Cable Row تمرکز روی پایین نگه داشتن شانه‌ها باشد.',
-              'در Lateral Raise و Rear Delt Fly وزنه سبک و فرم تمیز اولویت دارد.',
-              'Farmer Carry با شکم سفت و شانه‌های عقب انجام شود.',
+              'Lat Pulldown دست جمع، Cable Row تک‌دست و Farmer Carry با تمرکز روی ثبات کتف اجرا شوند.',
+              'Lateral Raise و Rear Delt Fly با وزنه سبک و فرم تمیز بهتر جواب می‌دهند.',
+              'Reverse Crunch بعد از Pallof Press و قبل از هوازی قرار بگیرد.',
             ],
           ),
-          const _DayGuideSection(
-            title: 'هوازی بعد از تمرین',
-            items: [
-              'برای این روز ۲۵ دقیقه هوازی پیشنهاد می‌شود.',
-              'تردمیل یا الپتیکال گزینه‌های مناسب هستند.',
-            ],
-          ),
-          stepsSection,
+          ...commonSections,
         ],
       );
     case 'day-outdoor':
-      return _DayGuideContent(
-        summary: 'این روز برای ریکاوری فعال، افزایش قدم روزانه و پیاده‌روی آرام آخر هفته است.',
+      return const _DayGuideContent(
+        summary:
+            'این روز برای ریکاوری فعال، چربی‌سوزی و کامل کردن قدم روزانه طراحی شده است.',
         sections: [
-          const _DayGuideSection(
-            title: 'راهنمای پیاده‌روی',
+          _DayGuideSection(
+            title: 'نکات اختصاصی روز ۵',
             items: [
-              '۴۵ تا ۶۰ دقیقه آرام و پیوسته راه برو.',
-              'شدت در حدی باشد که بتوانی صحبت کنی.',
-              'اگر خسته شدی سرعت را کم کن اما حرکت را حفظ کن.',
+              'هدف پیش‌فرض این روز ۶۰ دقیقه پیاده‌روی است.',
+              'شدت در حد قابل گفت‌وگو بماند.',
+              'اگر خسته شدی، چند دقیقه آرام‌تر راه برو ولی حرکت را حفظ کن.',
             ],
           ),
-          stepsSection,
+          _DayGuideSection(
+            title: 'هدف ۱۲ هفته‌ای با این برنامه',
+            items: [
+              'وزن: حدود ۸۳.۵ تا ۸۴.۵ کیلو',
+              'دور شکم: حدود ۹۰ تا ۹۳ سانتی‌متر',
+              'قدم روزانه: ۸۰۰۰ تا ۱۰۰۰۰ قدم',
+            ],
+          ),
         ],
       );
     default:
       return _DayGuideContent(
         summary: 'راهنمایی برای این روز ثبت نشده است.',
-        sections: [stepsSection, gymCardioSection],
+        sections: commonSections,
       );
   }
 }
@@ -1040,64 +946,80 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
   const imageMap = {
     'Leg Press': 'assets/exercises/leg_press.png',
     'leg press': 'assets/exercises/leg_press.png',
-    'Goblet Squat': 'assets/exercises/goblet_squat.png',
-    'goblet squat': 'assets/exercises/goblet_squat.png',
-    'Bulgarian Split Squat': 'assets/exercises/bulgarian_split_squat.png',
-    'bulgarian split squat': 'assets/exercises/bulgarian_split_squat.png',
+    'Smith Squat': 'assets/exercises/smith_squat.png',
+    'smith squat': 'assets/exercises/smith_squat.png',
+    'Step-up': 'assets/exercises/step_up.png',
+    'step-up': 'assets/exercises/step_up.png',
     'Leg Extension': 'assets/exercises/leg_extension.png',
     'leg extension': 'assets/exercises/leg_extension.png',
     'Seated Calf Raise': 'assets/exercises/seated_calf_raise.png',
     'seated calf raise': 'assets/exercises/seated_calf_raise.png',
+    'Cable Crunch': 'assets/exercises/cable_crunch.png',
+    'cable crunch': 'assets/exercises/cable_crunch.png',
     'Plank': 'assets/exercises/plank.png',
     'plank': 'assets/exercises/plank.png',
-    'Dead Bug': 'assets/exercises/dead_bug.png',
-    'dead bug': 'assets/exercises/dead_bug.png',
-    'دوچرخه ثابت': 'assets/exercises/bicycle.png',
-    'Bicycle': 'assets/exercises/bicycle.png',
-    'تردمیل': 'assets/exercises/treadmill.png',
-    'Treadmill': 'assets/exercises/treadmill.png',
-    'Elliptical': 'assets/exercises/elliptical.png',
-    'الپتیکال': 'assets/exercises/elliptical.png',
+    'Bench Press': 'assets/exercises/bench_press.png',
+    'bench press': 'assets/exercises/bench_press.png',
+    'Lat Pulldown': 'assets/exercises/lat_pulldown.png',
+    'lat pulldown': 'assets/exercises/lat_pulldown.png',
+    'Lat Pulldown دست جمع': 'assets/exercises/lat_pulldown.png',
+    'lat pulldown دست جمع': 'assets/exercises/lat_pulldown.png',
+    'Seated Row': 'assets/exercises/seated_row.png',
+    'seated row': 'assets/exercises/seated_row.png',
+    'Dumbbell Shoulder Press': 'assets/exercises/shoulder_press.png',
+    'dumbbell shoulder press': 'assets/exercises/shoulder_press.png',
+    'Face Pull': 'assets/exercises/face_pull.png',
+    'face pull': 'assets/exercises/face_pull.png',
+    'Cable Triceps Pushdown': 'assets/exercises/triceps_pushdown.png',
+    'cable triceps pushdown': 'assets/exercises/triceps_pushdown.png',
+    'Dumbbell Curl': 'assets/exercises/biceps_curl.png',
+    'dumbbell curl': 'assets/exercises/biceps_curl.png',
+    'Pallof Press': 'assets/exercises/pallof_press.png',
+    'pallof press': 'assets/exercises/pallof_press.png',
+    'Reverse Crunch': 'assets/exercises/reverse_crunch.png',
+    'reverse crunch': 'assets/exercises/reverse_crunch.png',
     'Romanian Deadlift': 'assets/exercises/romanian_deadlift.png',
     'romanian deadlift': 'assets/exercises/romanian_deadlift.png',
     'Hip Thrust': 'assets/exercises/hip_thrust.png',
     'hip thrust': 'assets/exercises/hip_thrust.png',
     'Leg Curl': 'assets/exercises/leg_curl.png',
     'leg curl': 'assets/exercises/leg_curl.png',
-    'Bench Press': 'assets/exercises/bench_press.png',
-    'bench press': 'assets/exercises/bench_press.png',
-    'Chest Press': 'assets/exercises/chest_press.png',
-    'Lat Pulldown': 'assets/exercises/lat_pulldown.png',
-    'Seated Row': 'assets/exercises/seated_row.png',
-    'Shoulder Press': 'assets/exercises/shoulder_press.png',
-    'Face Pull': 'assets/exercises/face_pull.png',
-    'Triceps Pushdown': 'assets/exercises/triceps_pushdown.png',
-    'Biceps Curl': 'assets/exercises/biceps_curl.png',
+    'Lying/Seated Leg Curl': 'assets/exercises/leg_curl.png',
+    'lying/seated leg curl': 'assets/exercises/leg_curl.png',
     'Reverse Lunge': 'assets/exercises/reverse_lunge.png',
     'reverse lunge': 'assets/exercises/reverse_lunge.png',
     'Hip Abduction Machine': 'assets/exercises/hip_abduction_machine.png',
     'hip abduction machine': 'assets/exercises/hip_abduction_machine.png',
     'Standing Calf Raise': 'assets/exercises/standing_calf_raise.png',
     'standing calf raise': 'assets/exercises/standing_calf_raise.png',
+    'Captain Chair': 'assets/exercises/captain_chair.png',
+    'captain chair': 'assets/exercises/captain_chair.png',
+    'Dead Bug': 'assets/exercises/dead_bug.png',
+    'dead bug': 'assets/exercises/dead_bug.png',
     'Incline Dumbbell Press': 'assets/exercises/incline_dumbbell_press.png',
     'incline dumbbell press': 'assets/exercises/incline_dumbbell_press.png',
-    'Assisted Pull-up': 'assets/exercises/assisted_pullup.png',
-    'assisted pull-up': 'assets/exercises/assisted_pullup.png',
-    'Close-Grip Lat Pulldown': 'assets/exercises/lat_pulldown.png',
-    'close-grip lat pulldown': 'assets/exercises/lat_pulldown.png',
-    'Cable Row Single Arm': 'assets/exercises/cable_row_single_arm.png',
     'Cable Row تک دست': 'assets/exercises/cable_row_single_arm.png',
     'Cable Row تک‌دست': 'assets/exercises/cable_row_single_arm.png',
-    'Rear Delt Fly': 'assets/exercises/rear_delt_fly.png',
-    'rear delt fly': 'assets/exercises/rear_delt_fly.png',
+    'cable row تک دست': 'assets/exercises/cable_row_single_arm.png',
+    'cable row تک‌دست': 'assets/exercises/cable_row_single_arm.png',
     'Lateral Raise': 'assets/exercises/lateral_raise.png',
     'lateral raise': 'assets/exercises/lateral_raise.png',
+    'Rear Delt Fly': 'assets/exercises/rear_delt_fly.png',
+    'rear delt fly': 'assets/exercises/rear_delt_fly.png',
     'Farmer Carry': 'assets/exercises/farmer_carry.png',
     'farmer carry': 'assets/exercises/farmer_carry.png',
-    'Pallof Press': 'assets/exercises/pallof_press.png',
-    'pallof press': 'assets/exercises/pallof_press.png',
-    'Outdoor Walking': 'assets/exercises/outdoor_walking.png',
+    'دوچرخه ثابت': 'assets/exercises/bicycle.png',
+    'دوچرخه ثابت یا الپتیکال': 'assets/exercises/bicycle.png',
+    'Bicycle': 'assets/exercises/bicycle.png',
+    'الپتیکال': 'assets/exercises/elliptical.png',
+    'Elliptical': 'assets/exercises/elliptical.png',
+    'تردمیل': 'assets/exercises/treadmill.png',
+    'Treadmill': 'assets/exercises/treadmill.png',
+    'هوازی سبک + گرم‌کردن شانه': 'assets/exercises/elliptical.png',
+    'هوازی سبک + گرم‌کردن کتف': 'assets/exercises/elliptical.png',
+    'هوازی': 'assets/exercises/treadmill.png',
     'پیاده‌روی': 'assets/exercises/outdoor_walking.png',
+    'Outdoor Walking': 'assets/exercises/outdoor_walking.png',
   };
 
   return imageMap[normalizedName] ?? imageMap[normalizedLowerName];

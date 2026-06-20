@@ -39,6 +39,10 @@ class LocalStorageService {
       DefaultSeedData.workouts().map((item) => item.toJson()).toList(),
     );
     await _box.put(
+      StorageKeys.workoutSeedVersion,
+      DefaultSeedData.workoutSeedVersion,
+    );
+    await _box.put(
       StorageKeys.meals,
       DefaultSeedData.mealPlans().map((item) => item.toJson()).toList(),
     );
@@ -276,54 +280,23 @@ class LocalStorageService {
   }
 
   Future<void> ensureWorkoutPlanCurrent() async {
+    final storedVersion = _box.get(
+      StorageKeys.workoutSeedVersion,
+      defaultValue: 0,
+    ) as int;
     final storedWorkouts = _mapList(StorageKeys.workouts);
-    final hasExpectedPlan = storedWorkouts.length == 5 &&
-        storedWorkouts.any((item) => item['id'] == 'day-outdoor') &&
-        _workoutHasExercises(storedWorkouts, 'day-1', [
-          'd1-e1',
-          'd1-e2',
-          'd1-e3',
-          'd1-e4',
-          'd1-e5',
-          'd1-e6',
-          'd1-e7',
-        ]) &&
-        _workoutHasExercises(storedWorkouts, 'day-2', [
-          'd2-e1',
-          'd2-e2',
-          'd2-e3',
-          'd2-e4',
-          'd2-e5',
-          'd2-e6',
-          'd2-e7',
-        ]) &&
-        _workoutHasExercises(storedWorkouts, 'day-4', [
-          'd4-e1',
-          'd4-e2',
-          'd4-e3',
-          'd4-e4',
-          'd4-e5',
-          'd4-e6',
-          'd4-e7',
-          'd4-e8',
-        ]) &&
-        _workoutHasExercises(storedWorkouts, 'day-5', [
-          'd5-e1',
-          'd5-e2',
-          'd5-e3',
-          'd5-e4',
-          'd5-e6',
-          'd5-e7',
-          'd5-e8',
-        ]);
-
-    if (hasExpectedPlan) {
+    if (storedVersion >= DefaultSeedData.workoutSeedVersion &&
+        _hasCurrentWorkoutPlan(storedWorkouts)) {
       return;
     }
 
     await _box.put(
       StorageKeys.workouts,
       DefaultSeedData.workouts().map((item) => item.toJson()).toList(),
+    );
+    await _box.put(
+      StorageKeys.workoutSeedVersion,
+      DefaultSeedData.workoutSeedVersion,
     );
   }
 
@@ -347,25 +320,47 @@ class LocalStorageService {
     return '${AppDateUtils.dateKey(DateTime.now())}:$workoutDayId';
   }
 
-  bool _workoutHasExercises(
-    List<Map<String, dynamic>> workouts,
-    String workoutId,
-    List<String> requiredExerciseIds,
-  ) {
-    final workout = workouts.cast<Map<String, dynamic>?>().firstWhere(
-          (item) => item?['id'] == workoutId,
-          orElse: () => null,
-        );
-    if (workout == null) {
+  bool _hasCurrentWorkoutPlan(List<Map<String, dynamic>> storedWorkouts) {
+    final expectedWorkouts = DefaultSeedData.workouts();
+    if (storedWorkouts.length != expectedWorkouts.length) {
       return false;
     }
 
-    final exercises = workout['exercises'] as List<dynamic>? ?? const [];
-    final exerciseIds = exercises
-        .map((item) => Map<String, dynamic>.from(item as Map)['id'] as String)
-        .toSet();
+    final storedById = {
+      for (final workout in storedWorkouts) workout['id'] as String: workout,
+    };
 
-    return requiredExerciseIds.every(exerciseIds.contains);
+    for (final expected in expectedWorkouts) {
+      final stored = storedById[expected.id];
+      if (stored == null) {
+        return false;
+      }
+
+      if (stored['title'] != expected.title ||
+          stored['focus'] != expected.focus ||
+          stored['dayNumber'] != expected.dayNumber) {
+        return false;
+      }
+
+      final storedExercises = (stored['exercises'] as List<dynamic>? ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+
+      if (storedExercises.length != expected.exercises.length) {
+        return false;
+      }
+
+      for (var index = 0; index < expected.exercises.length; index++) {
+        final storedExercise = storedExercises[index];
+        final expectedExercise = expected.exercises[index];
+        if (storedExercise['id'] != expectedExercise.id ||
+            storedExercise['name'] != expectedExercise.name) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   WorkoutLog _mergeWorkoutLogWithDay(WorkoutLog existing, WorkoutDay workoutDay) {
