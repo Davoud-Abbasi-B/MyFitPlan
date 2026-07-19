@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_snapshot_view.dart';
 import '../../../core/widgets/section_title.dart';
@@ -26,10 +27,14 @@ class WorkoutPlanScreen extends ConsumerWidget {
         builder: (data) {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: data.workouts.length,
+            itemCount: data.workouts.length + 1,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              return _WorkoutDayCard(workout: data.workouts[index]);
+              if (index == 0) {
+                return const _VideoAbsGuideCard();
+              }
+
+              return _WorkoutDayCard(workout: data.workouts[index - 1]);
             },
           );
         },
@@ -37,6 +42,487 @@ class WorkoutPlanScreen extends ConsumerWidget {
     );
   }
 }
+
+class _VideoAbsGuideCard extends StatelessWidget {
+  const _VideoAbsGuideCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.ondemand_video_outlined,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'برنامه مکمل شکم از ویدئو',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'راهنمای آموزشی ۳ جلسه‌ای؛ جایگزین برنامه فعلی نیست',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showVideoAbsGuide(context),
+              icon: const Icon(Icons.menu_book_outlined),
+              label: const Text('مشاهده راهنمای مکمل شکم'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showVideoAbsGuide(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.55,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        16,
+                        16,
+                        28 + MediaQuery.paddingOf(context).bottom,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'برنامه مکمل شکم از ویدئو',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'این راهنما در کنار برنامه اصلی استفاده می‌شود و هیچ‌کدام از حرکات فعلی برنامه را حذف یا جایگزین نمی‌کند.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(height: 18),
+                          _VideoGuidePanel(
+                            child: _GuideSection(
+                              title: 'نحوه استفاده از برنامه',
+                              child: _BulletList(
+                                items: const [
+                                  'این برنامه جایگزین برنامه فعلی نیست.',
+                                  'این ۳ حرکت به‌عنوان مکمل تمرین شکم استفاده می‌شوند.',
+                                  'تمرین شکم باید آخر تمرین انجام شود، نه اول تمرین.',
+                                  'هدف این حرکات ساخت عضلات شکم است، نه چربی‌سوزی موضعی.',
+                                  'برای دیده شدن شکم، کنترل کالری، قدم روزانه، هوازی و کاهش ریزه‌خواری مهم است.',
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          const SectionTitle('راهنمای حرکات ویدئو'),
+                          const SizedBox(height: 12),
+                          ..._videoAbsExercises.map(
+                            (exercise) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _VideoAbsExerciseCard(exercise: exercise),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const SectionTitle('جلسات قابل اجرا'),
+                          const SizedBox(height: 12),
+                          ..._videoAbsSessions.map(
+                            (session) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _VideoAbsSessionCard(session: session),
+                            ),
+                          ),
+                          const _VideoGuidePanel(
+                            child: _GuideSection(
+                              title: 'روز ۲؛ بالاتنه A',
+                              child: Text(
+                                'در این برنامه مکمل، برای روز بالاتنه A تمرین شکم جداگانه اضافه نشده است. اگر احساس خستگی نداری، فقط کشش سبک یا تمرینات تنفسی و ثباتی خیلی سبک انجام بده. برنامه فعلی اپ را تغییر نده.',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const _VideoGuidePanel(
+                            child: _GuideSection(
+                              title: 'روز ۵؛ پیاده‌روی سبک',
+                              child: Text(
+                                'در روز پیاده‌روی، تمرین شکم جداگانه لازم نیست. تمرکز روی ریکاوری، قدم روزانه و چربی‌سوزی سبک باشد.',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const _VideoGuidePanel(
+                            child: _GuideSection(
+                              title: 'نکات مهم اجرای حرکات شکم',
+                              child: _BulletList(
+                                items: [
+                                  'Tuck Crunch: گردن را نکش؛ حرکت از شکم باشد، نه از گردن.',
+                                  'Side Plank Hip Dip: اگر کمر یا شانه اذیت شد، به‌جای حرکت لگن، پلانک پهلو ثابت بگیر.',
+                                  'Lying Leg Raise: اگر کمرت گود می‌شود، پاها را کامل پایین نبر یا زانوها را کمی خم کن.',
+                                  'همه حرکات آهسته و کنترل‌شده انجام شوند؛ کیفیت مهم‌تر از تعداد تکرار است.',
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const _VideoGuidePanel(
+                            child: _GuideSection(
+                              title: 'نکته مهم درباره چربی شکم',
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'این ۳ حرکت برای ساختن و قوی‌تر شدن عضلات شکم خوب هستند، اما چربی روی شکم را مستقیم آب نمی‌کنند. برای دیده شدن شکم، این حرکات باید کنار برنامه اصلی، کنترل کالری، پروتئین کافی، هوازی، قدم روزانه و کنترل ریزه‌خواری اجرا شوند.',
+                                  ),
+                                  SizedBox(height: 10),
+                                  _BulletList(
+                                    items: [
+                                      'تمرین شکم: ۳ جلسه در هفته، آخر تمرین',
+                                      'تمرین پا: حفظ شود و سبک یا حذف نشود',
+                                      'کالری روز تمرین: ۲۳۰۰ تا ۲۴۰۰',
+                                      'کالری روز غیرتمرین: ۲۱۰۰ تا ۲۲۰۰',
+                                      'پروتئین: حدود ۱۵۰ گرم در روز',
+                                      'قدم روزانه: ۸۵۰۰ تا ۹۵۰۰',
+                                      'پیاده‌روی آخر هفته: ۴۵ تا ۶۰ دقیقه',
+                                      'شیرینی و ریزه‌خواری عصر: کنترل جدی',
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+}
+
+class _VideoGuidePanel extends StatelessWidget {
+  const _VideoGuidePanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _VideoAbsExerciseCard extends StatelessWidget {
+  const _VideoAbsExerciseCard({required this.exercise});
+
+  final _VideoAbsExercise exercise;
+
+  @override
+  Widget build(BuildContext context) {
+    return _VideoGuidePanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${exercise.englishName} / ${exercise.persianName}',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          _OptionalVideoExerciseImage(
+            imageAssetPath: exercise.imageAssetPath,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            exercise.prescription,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 12),
+          _GuideSection(
+            title: 'عضلات درگیر',
+            child: _BulletList(items: exercise.targetMuscles),
+          ),
+          const SizedBox(height: 10),
+          _GuideSection(
+            title: 'نحوه انجام حرکت',
+            child: Text(exercise.instruction),
+          ),
+          const SizedBox(height: 10),
+          _GuideSection(
+            title: 'نکات مهم',
+            child: _BulletList(items: exercise.tips),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OptionalVideoExerciseImage extends StatelessWidget {
+  const _OptionalVideoExerciseImage({required this.imageAssetPath});
+
+  final String imageAssetPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 220),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Image.asset(
+            imageAssetPath,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const _ExerciseGuidePlaceholder();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VideoAbsSessionCard extends StatelessWidget {
+  const _VideoAbsSessionCard({required this.session});
+
+  final _VideoAbsSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    return _VideoGuidePanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            session.title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            session.relatedDay,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 10),
+          _BulletList(items: session.exercises),
+        ],
+      ),
+    );
+  }
+}
+
+class _VideoAbsExercise {
+  const _VideoAbsExercise({
+    required this.englishName,
+    required this.persianName,
+    required this.prescription,
+    required this.targetMuscles,
+    required this.instruction,
+    required this.tips,
+    required this.imageAssetPath,
+  });
+
+  final String englishName;
+  final String persianName;
+  final String prescription;
+  final List<String> targetMuscles;
+  final String instruction;
+  final List<String> tips;
+  final String imageAssetPath;
+}
+
+class _VideoAbsSession {
+  const _VideoAbsSession({
+    required this.title,
+    required this.relatedDay,
+    required this.exercises,
+  });
+
+  final String title;
+  final String relatedDay;
+  final List<String> exercises;
+}
+
+const _videoAbsExercises = [
+  _VideoAbsExercise(
+    englishName: 'Tuck Crunch',
+    persianName: 'کرانچ جمع‌کردن زانو',
+    prescription: '۳ ست × ۱۰ تا ۱۲ تکرار',
+    targetMuscles: [
+      'شکم مرکزی',
+      'شکم بالایی',
+      'عضلات مرکزی بدن',
+    ],
+    instruction:
+        'از حالت درازکش، زانوها را به سمت بدن جمع کن و هم‌زمان بالاتنه را کمی بالا بیاور. حرکت باید آرام و کنترل‌شده باشد.',
+    tips: [
+      'گردن را نکش.',
+      'حرکت از شکم باشد، نه از گردن.',
+      'کمر را کنترل کن.',
+      'کیفیت حرکت مهم‌تر از تعداد تکرار است.',
+    ],
+    imageAssetPath: 'assets/exercises/tuck_crunch.png',
+  ),
+  _VideoAbsExercise(
+    englishName: 'Side Plank Hip Dip',
+    persianName: 'پلانک پهلو با حرکت لگن',
+    prescription: '۳ ست × ۱۰ تا ۱۵ تکرار برای هر سمت',
+    targetMuscles: [
+      'پهلوها',
+      'عضلات مورب شکم',
+      'عضلات مرکزی',
+      'تثبیت‌کننده‌های لگن و شانه',
+    ],
+    instruction:
+        'در حالت پلانک پهلو قرار بگیر، بدن را صاف نگه دار، لگن را کنترل‌شده کمی پایین ببر و دوباره بالا بیاور.',
+    tips: [
+      'بدن صاف بماند.',
+      'لگن را با کنترل حرکت بده.',
+      'اگر کمر یا شانه اذیت شد، به‌جای حرکت لگن، پلانک پهلو ثابت انجام بده.',
+      'حرکت نباید با تاب خوردن انجام شود.',
+    ],
+    imageAssetPath: 'assets/exercises/side_plank_hip_dip.png',
+  ),
+  _VideoAbsExercise(
+    englishName: 'Lying Leg Raise',
+    persianName: 'بالا آوردن پا خوابیده',
+    prescription: '۳ ست × ۸ تا ۱۲ تکرار',
+    targetMuscles: [
+      'پایین شکم',
+      'راست شکمی',
+      'کنترل لگن',
+      'عضلات مرکزی',
+    ],
+    instruction:
+        'به پشت بخواب، پاها را صاف یا کمی خم نگه دار، پاها را تا نزدیک ۹۰ درجه بالا بیاور و آرام پایین ببر.',
+    tips: [
+      'کمر نباید از زمین جدا شود.',
+      'اگر کمرت گود می‌شود، پاها را کامل پایین نبر.',
+      'در صورت نیاز زانوها را کمی خم کن.',
+      'حرکت را آهسته و کنترل‌شده انجام بده.',
+    ],
+    imageAssetPath: 'assets/exercises/lying_leg_raise.png',
+  ),
+];
+
+const _videoAbsSessions = [
+  _VideoAbsSession(
+    title: 'جلسه شکم مکمل ۱؛ بعد پایین‌تنه A',
+    relatedDay: 'مرتبط با روز ۱: Lower Body A + Abs 1',
+    exercises: [
+      'Tuck Crunch / کرانچ جمع‌کردن زانو: ۳ ست، ۱۰ تا ۱۲ تکرار، استراحت ۶۰ تا ۹۰ ثانیه',
+      'Lying Leg Raise / بالا آوردن پا خوابیده: ۳ ست، ۸ تا ۱۲ تکرار، استراحت ۶۰ تا ۹۰ ثانیه',
+    ],
+  ),
+  _VideoAbsSession(
+    title: 'جلسه شکم مکمل ۲؛ بعد پایین‌تنه B',
+    relatedDay: 'مرتبط با روز ۳: Lower Body B + Abs 2',
+    exercises: [
+      'Side Plank Hip Dip / پلانک پهلو با حرکت لگن: ۳ ست، ۱۰ تا ۱۵ تکرار هر سمت، استراحت ۶۰ تا ۹۰ ثانیه',
+      'Lying Leg Raise / بالا آوردن پا خوابیده: ۳ ست، ۸ تا ۱۲ تکرار، استراحت ۶۰ تا ۹۰ ثانیه',
+    ],
+  ),
+  _VideoAbsSession(
+    title: 'جلسه شکم مکمل ۳؛ بعد بالاتنه B',
+    relatedDay: 'مرتبط با روز ۴: Upper Body B + Corrective + Abs 3',
+    exercises: [
+      'Tuck Crunch / کرانچ جمع‌کردن زانو: ۳ ست، ۱۰ تا ۱۲ تکرار، استراحت ۶۰ تا ۹۰ ثانیه',
+      'Side Plank Hip Dip / پلانک پهلو با حرکت لگن: ۳ ست، ۱۰ تا ۱۵ تکرار هر سمت، استراحت ۶۰ تا ۹۰ ثانیه',
+    ],
+  ),
+];
 
 class _WorkoutDayCard extends ConsumerStatefulWidget {
   const _WorkoutDayCard({required this.workout});
@@ -60,15 +546,7 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
   final Map<String, FocusNode> _durationSecondFocusNodes = {};
   final Map<String, FocusNode> _noteFocusNodes = {};
 
-  late final TextEditingController _cardioMinutesController;
-  late final FocusNode _cardioMinutesFocusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _cardioMinutesController = TextEditingController();
-    _cardioMinutesFocusNode = FocusNode();
-  }
+  bool _isExpanded = false;
 
   @override
   void dispose() {
@@ -96,8 +574,6 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
       }
     }
 
-    _cardioMinutesController.dispose();
-    _cardioMinutesFocusNode.dispose();
     super.dispose();
   }
 
@@ -111,134 +587,233 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
           padding: EdgeInsets.symmetric(vertical: 24),
           child: Center(child: CircularProgressIndicator()),
         ),
-        error: (error, stackTrace) =>
-            Text('بارگذاری تمرین انجام نشد.\n$error'),
+        error: (error, stackTrace) => Text('بارگذاری تمرین انجام نشد.\n$error'),
         data: (log) {
-          _maybeSyncController(
-            _cardioMinutesController,
-            _cardioMinutesFocusNode,
-            log.cardioMinutes == 0 ? '' : log.cardioMinutes.toString(),
-          );
-
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.workout.displayScheduleLabel,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Expanded(child: SectionTitle(widget.workout.title)),
-                  TextButton.icon(
-                    onPressed: () => _showDayGuide(context, widget.workout),
-                    icon: const Icon(Icons.info_outline, size: 18),
-                    label: const Text('راهنمای روز'),
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: _toggleExpanded,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                Text(
+                                  widget.workout.displayScheduleLabel,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                                if (_isTodayWorkout())
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryLight
+                                          .withOpacity(0.7),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      'امروز',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            SectionTitle(widget.workout.title),
+                            const SizedBox(height: 8),
+                            Text(
+                              widget.workout.focus,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _summaryText(log),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: () =>
+                                  _showDayGuide(context, widget.workout),
+                              icon: const Icon(Icons.info_outline, size: 18),
+                              label: const Text('راهنمای روز'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _toggleExpanded,
+                        icon: Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                widget.workout.focus,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-              ),
-              const SizedBox(height: 14),
-              ...widget.workout.exercises.map((exercise) {
-                final logEntry = log.exerciseLogs.firstWhere(
-                  (entry) => entry.exerciseId == exercise.id,
-                  orElse: () => ExerciseLog(
-                    exerciseId: exercise.id,
-                    name: exercise.name,
-                    type: exercise.type,
-                    completed: false,
-                    plannedSets: exercise.sets,
-                    plannedReps: exercise.reps,
-                    durationMinutes: exercise.targetDurationMinutes,
-                    durationSeconds: exercise.targetDurationSeconds,
-                  ),
-                );
+              AnimatedCrossFade(
+                firstChild: const SizedBox.shrink(),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Column(
+                    children: [
+                      ...widget.workout.exercises.map((exercise) {
+                        final logEntry = log.exerciseLogs.firstWhere(
+                          (entry) => entry.exerciseId == exercise.id,
+                          orElse: () => ExerciseLog(
+                            exerciseId: exercise.id,
+                            name: exercise.name,
+                            type: exercise.type,
+                            completed: false,
+                            plannedSets: exercise.sets,
+                            plannedReps: exercise.reps,
+                            durationMinutes: exercise.targetDurationMinutes,
+                            durationSeconds: exercise.targetDurationSeconds,
+                          ),
+                        );
 
-                return _ExerciseLogEditor(
-                  workout: widget.workout,
-                  exercise: exercise,
-                  exerciseLog: logEntry,
-                  weightController: _syncedController(
-                    _weightControllers,
-                    _weightFocusNodes,
-                    exercise.id,
-                    logEntry.weightKg?.toString() ?? '',
+                        return _ExerciseLogEditor(
+                          workout: widget.workout,
+                          exercise: exercise,
+                          exerciseLog: logEntry,
+                          weightController: _syncedController(
+                            _weightControllers,
+                            _weightFocusNodes,
+                            exercise.id,
+                            logEntry.weightKg?.toString() ?? '',
+                          ),
+                          weightFocusNode:
+                              _focusNodeFor(_weightFocusNodes, exercise.id),
+                          repsController: _syncedController(
+                            _repsControllers,
+                            _repsFocusNodes,
+                            exercise.id,
+                            logEntry.actualReps ?? '',
+                          ),
+                          repsFocusNode:
+                              _focusNodeFor(_repsFocusNodes, exercise.id),
+                          durationMinutesController: _syncedController(
+                            _durationMinuteControllers,
+                            _durationMinuteFocusNodes,
+                            exercise.id,
+                            logEntry.durationMinutes?.toString() ?? '',
+                          ),
+                          durationMinutesFocusNode: _focusNodeFor(
+                            _durationMinuteFocusNodes,
+                            exercise.id,
+                          ),
+                          durationSecondsController: _syncedController(
+                            _durationSecondControllers,
+                            _durationSecondFocusNodes,
+                            exercise.id,
+                            logEntry.durationSeconds?.toString() ?? '',
+                          ),
+                          durationSecondsFocusNode: _focusNodeFor(
+                            _durationSecondFocusNodes,
+                            exercise.id,
+                          ),
+                          noteController: _syncedController(
+                            _noteControllers,
+                            _noteFocusNodes,
+                            exercise.id,
+                            logEntry.note ?? '',
+                          ),
+                          noteFocusNode:
+                              _focusNodeFor(_noteFocusNodes, exercise.id),
+                        );
+                      }),
+                      if (widget.workout.isGymWorkout) ...[
+                        const SizedBox(height: 12),
+                        _KneePainSection(
+                          kneePain: log.kneePain,
+                          onChanged: (value) {
+                            ref
+                                .read(
+                                    workoutLogProvider(widget.workout).notifier)
+                                .setKneePain(value);
+                          },
+                        ),
+                      ],
+                    ],
                   ),
-                  weightFocusNode: _focusNodeFor(_weightFocusNodes, exercise.id),
-                  repsController: _syncedController(
-                    _repsControllers,
-                    _repsFocusNodes,
-                    exercise.id,
-                    logEntry.actualReps ?? '',
-                  ),
-                  repsFocusNode: _focusNodeFor(_repsFocusNodes, exercise.id),
-                  durationMinutesController: _syncedController(
-                    _durationMinuteControllers,
-                    _durationMinuteFocusNodes,
-                    exercise.id,
-                    logEntry.durationMinutes?.toString() ?? '',
-                  ),
-                  durationMinutesFocusNode:
-                      _focusNodeFor(_durationMinuteFocusNodes, exercise.id),
-                  durationSecondsController: _syncedController(
-                    _durationSecondControllers,
-                    _durationSecondFocusNodes,
-                    exercise.id,
-                    logEntry.durationSeconds?.toString() ?? '',
-                  ),
-                  durationSecondsFocusNode:
-                      _focusNodeFor(_durationSecondFocusNodes, exercise.id),
-                  noteController: _syncedController(
-                    _noteControllers,
-                    _noteFocusNodes,
-                    exercise.id,
-                    logEntry.note ?? '',
-                  ),
-                  noteFocusNode: _focusNodeFor(_noteFocusNodes, exercise.id),
-                );
-              }),
-              if (widget.workout.isGymWorkout) ...[
-                const SizedBox(height: 12),
-                _CardioSection(
-                  cardioCompleted: log.cardioCompleted,
-                  cardioMinutesController: _cardioMinutesController,
-                  cardioMinutesFocusNode: _cardioMinutesFocusNode,
-                  onCompletedChanged: (value) {
-                    ref
-                        .read(workoutLogProvider(widget.workout).notifier)
-                        .setCardioCompleted(value);
-                  },
-                  onMinutesChanged: (value) {
-                    ref
-                        .read(workoutLogProvider(widget.workout).notifier)
-                        .updateCardioMinutes(value);
-                  },
                 ),
-                const SizedBox(height: 12),
-                _KneePainSection(
-                  kneePain: log.kneePain,
-                  onChanged: (value) {
-                    ref
-                        .read(workoutLogProvider(widget.workout).notifier)
-                        .setKneePain(value);
-                  },
-                ),
-              ],
+                crossFadeState: _isExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 180),
+              ),
             ],
           );
         },
       ),
     );
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
+  }
+
+  int _completedExercisesCount(WorkoutLog log) {
+    return log.exerciseLogs.where((entry) => entry.completed).length;
+  }
+
+  String _summaryText(WorkoutLog log) {
+    final total = widget.workout.exercises.length;
+    final completed = _completedExercisesCount(log);
+    final completedLabel = AppDateUtils.toPersianDigits(completed.toString());
+    final totalLabel = AppDateUtils.toPersianDigits(total.toString());
+    return '$completedLabel/$totalLabel کامل شده • $totalLabel حرکت';
+  }
+
+  bool _isTodayWorkout() {
+    switch (DateTime.now().weekday) {
+      case DateTime.saturday:
+        return widget.workout.dayNumber == 1;
+      case DateTime.sunday:
+        return widget.workout.dayNumber == 2;
+      case DateTime.tuesday:
+        return widget.workout.dayNumber == 3;
+      case DateTime.wednesday:
+        return widget.workout.dayNumber == 4;
+      case DateTime.thursday:
+        return widget.workout.dayNumber == 5;
+      default:
+        return false;
+    }
   }
 
   TextEditingController _syncedController(
@@ -288,7 +863,8 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
         return SafeArea(
           top: false,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.9),
+            constraints:
+                BoxConstraints(maxHeight: mediaQuery.size.height * 0.9),
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 16,
@@ -420,7 +996,8 @@ class _ExerciseLogEditor extends ConsumerWidget {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                     ],
-                    onChanged: (value) => notifier.updateWeight(exercise.id, value),
+                    onChanged: (value) =>
+                        notifier.updateWeight(exercise.id, value),
                     decoration: const InputDecoration(
                       labelText: 'وزنه / کیلوگرم',
                       hintText: 'مثلا 150.5',
@@ -555,7 +1132,8 @@ class _ExerciseLogEditor extends ConsumerWidget {
     final tips = exercise.keyTips.isNotEmpty
         ? exercise.keyTips
         : [
-            if ((exercise.safetyTip ?? '').trim().isNotEmpty) exercise.safetyTip!,
+            if ((exercise.safetyTip ?? '').trim().isNotEmpty)
+              exercise.safetyTip!,
           ];
 
     return showModalBottomSheet<void>(
@@ -566,7 +1144,8 @@ class _ExerciseLogEditor extends ConsumerWidget {
         return SafeArea(
           top: false,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.88),
+            constraints:
+                BoxConstraints(maxHeight: mediaQuery.size.height * 0.88),
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 16,
@@ -589,7 +1168,9 @@ class _ExerciseLogEditor extends ConsumerWidget {
                   _GuideSection(
                     title: 'نحوه انجام حرکت',
                     child: Text(
-                      exercise.instructionText ?? exercise.guideText ?? exercise.notes,
+                      exercise.instructionText ??
+                          exercise.guideText ??
+                          exercise.notes,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
@@ -609,10 +1190,12 @@ class _ExerciseLogEditor extends ConsumerWidget {
                           const SizedBox(height: 6),
                           Text(
                             'عضلات کمکی: ${exercise.secondaryMuscles.join('، ')}',
-                            style:
-                                Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                           ),
                         ],
                       ],
@@ -843,7 +1426,8 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
   switch (workout.id) {
     case 'day-1':
       return _DayGuideContent(
-        summary: 'تمرکز این روز روی چهارسر، کنترل زانو، حجم پا و شکم جلسه ۱ است.',
+        summary:
+            'تمرکز این روز روی چهارسر، کنترل زانو، حجم پا و شکم جلسه ۱ است.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۱',
@@ -958,6 +1542,12 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
     'cable crunch': 'assets/exercises/cable_crunch.png',
     'Plank': 'assets/exercises/plank.png',
     'plank': 'assets/exercises/plank.png',
+    'Tuck Crunch': 'assets/exercises/tuck_crunch.png',
+    'tuck crunch': 'assets/exercises/tuck_crunch.png',
+    'Side Plank Hip Dip': 'assets/exercises/side_plank_hip_dip.png',
+    'side plank hip dip': 'assets/exercises/side_plank_hip_dip.png',
+    'Lying Leg Raise': 'assets/exercises/lying_leg_raise.png',
+    'lying leg raise': 'assets/exercises/lying_leg_raise.png',
     'Bench Press': 'assets/exercises/bench_press.png',
     'bench press': 'assets/exercises/bench_press.png',
     'Lat Pulldown': 'assets/exercises/lat_pulldown.png',
@@ -1026,61 +1616,7 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
 }
 
 String _normalizeExerciseName(String value) {
-  return value
-      .trim()
-      .replaceAll('\u200c', ' ')
-      .replaceAll(RegExp(r'\s+'), ' ');
-}
-
-class _CardioSection extends StatelessWidget {
-  const _CardioSection({
-    required this.cardioCompleted,
-    required this.cardioMinutesController,
-    required this.cardioMinutesFocusNode,
-    required this.onCompletedChanged,
-    required this.onMinutesChanged,
-  });
-
-  final bool cardioCompleted;
-  final TextEditingController cardioMinutesController;
-  final FocusNode cardioMinutesFocusNode;
-  final ValueChanged<bool> onCompletedChanged;
-  final ValueChanged<String> onMinutesChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CheckboxListTile(
-            value: cardioCompleted,
-            onChanged: (value) => onCompletedChanged(value ?? false),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: const Text('هوازی'),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: cardioMinutesController,
-            focusNode: cardioMinutesFocusNode,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: onMinutesChanged,
-            decoration: const InputDecoration(
-              labelText: 'زمان / دقیقه',
-              hintText: 'مثلا 25',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  return value.trim().replaceAll('\u200c', ' ').replaceAll(RegExp(r'\s+'), ' ');
 }
 
 class _KneePainSection extends StatelessWidget {
