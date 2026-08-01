@@ -9,6 +9,7 @@ abstract final class StorageKeys {
   static const checklist = 'checklist';
   static const checklistHistory = 'checklist_history';
   static const workoutLogs = 'workout_logs';
+  static const workoutSessions = 'workout_sessions';
   static const nutritionLog = 'nutrition_log';
   static const cravingLogs = 'craving_logs';
   static const supplementLog = 'supplement_log';

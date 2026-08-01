@@ -12,6 +12,7 @@ import '../../features/supplements/models/supplement_model.dart';
 import '../../features/supplements/models/supplement_reminder_settings_model.dart';
 import '../../features/workout/models/workout_day_model.dart';
 import '../../features/workout/models/workout_log_model.dart';
+import '../../features/workout/models/workout_session_model.dart';
 import 'app_snapshot.dart';
 import 'default_seed_data.dart';
 import 'hive_boxes.dart';
@@ -84,7 +85,8 @@ class LocalStorageService {
   Future<DailyChecklist> loadChecklistForToday() async {
     final stored = _box.get(StorageKeys.checklist);
     if (stored is Map) {
-      final checklist = DailyChecklist.fromJson(Map<String, dynamic>.from(stored));
+      final checklist =
+          DailyChecklist.fromJson(Map<String, dynamic>.from(stored));
       final todayKey = AppDateUtils.dateKey(DateTime.now());
 
       if (AppDateUtils.dateKey(checklist.date) == todayKey) {
@@ -177,10 +179,12 @@ class LocalStorageService {
     return supplementsList.map(Supplement.fromJson).toList();
   }
 
-  Future<NutritionLog> loadNutritionLogForToday(List<MealPlan> mealPlans) async {
+  Future<NutritionLog> loadNutritionLogForToday(
+      List<MealPlan> mealPlans) async {
     final stored = _box.get(StorageKeys.nutritionLog);
     if (stored is Map) {
-      final nutritionLog = NutritionLog.fromJson(Map<String, dynamic>.from(stored));
+      final nutritionLog =
+          NutritionLog.fromJson(Map<String, dynamic>.from(stored));
       final todayKey = AppDateUtils.dateKey(DateTime.now());
 
       if (AppDateUtils.dateKey(nutritionLog.date) == todayKey) {
@@ -260,7 +264,8 @@ class LocalStorageService {
     final storedLog = storedLogs[key];
 
     if (storedLog is Map) {
-      final existing = WorkoutLog.fromJson(Map<String, dynamic>.from(storedLog));
+      final existing =
+          WorkoutLog.fromJson(Map<String, dynamic>.from(storedLog));
       final merged = _mergeWorkoutLogWithDay(existing, workoutDay);
       if (merged != existing) {
         await saveWorkoutLog(merged);
@@ -275,8 +280,44 @@ class LocalStorageService {
 
   Future<void> saveWorkoutLog(WorkoutLog workoutLog) async {
     final storedLogs = _mapValue(StorageKeys.workoutLogs);
-    storedLogs[_workoutLogEntryKey(workoutLog.workoutDayId)] = workoutLog.toJson();
+    storedLogs[_workoutLogEntryKey(workoutLog.workoutDayId)] =
+        workoutLog.toJson();
     await _box.put(StorageKeys.workoutLogs, storedLogs);
+  }
+
+  Future<List<WorkoutSession>> loadWorkoutSessions() async {
+    final sessions = _mapList(StorageKeys.workoutSessions)
+        .map(WorkoutSession.fromJson)
+        .toList();
+    sessions.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    return sessions;
+  }
+
+  Future<bool> saveWorkoutSession(WorkoutSession session) async {
+    final sessions = await loadWorkoutSessions();
+    final duplicate = sessions.any(
+      (existing) =>
+          existing.dateKey == session.dateKey &&
+          existing.workoutDayNumber == session.workoutDayNumber,
+    );
+    if (duplicate) return false;
+
+    sessions.add(session);
+    sessions.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    await _box.put(
+      StorageKeys.workoutSessions,
+      sessions.map((item) => item.toJson()).toList(),
+    );
+    return true;
+  }
+
+  Future<void> deleteWorkoutSession(String sessionId) async {
+    final sessions = await loadWorkoutSessions();
+    sessions.removeWhere((session) => session.id == sessionId);
+    await _box.put(
+      StorageKeys.workoutSessions,
+      sessions.map((item) => item.toJson()).toList(),
+    );
   }
 
   Future<void> ensureWorkoutPlanCurrent() async {
@@ -302,9 +343,7 @@ class LocalStorageService {
 
   List<Map<String, dynamic>> _mapList(String key) {
     final value = _box.get(key, defaultValue: <dynamic>[]) as List<dynamic>;
-    return value
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList();
+    return value.map((item) => Map<String, dynamic>.from(item as Map)).toList();
   }
 
   Map<String, dynamic> _mapValue(String key) {
@@ -342,9 +381,10 @@ class LocalStorageService {
         return false;
       }
 
-      final storedExercises = (stored['exercises'] as List<dynamic>? ?? const [])
-          .map((item) => Map<String, dynamic>.from(item as Map))
-          .toList();
+      final storedExercises =
+          (stored['exercises'] as List<dynamic>? ?? const [])
+              .map((item) => Map<String, dynamic>.from(item as Map))
+              .toList();
 
       if (storedExercises.length != expected.exercises.length) {
         return false;
@@ -363,11 +403,13 @@ class LocalStorageService {
     return true;
   }
 
-  WorkoutLog _mergeWorkoutLogWithDay(WorkoutLog existing, WorkoutDay workoutDay) {
+  WorkoutLog _mergeWorkoutLogWithDay(
+      WorkoutLog existing, WorkoutDay workoutDay) {
     final existingById = {
       for (final log in existing.exerciseLogs) log.exerciseId: log,
     };
-    var hasChanges = existing.exerciseLogs.length != workoutDay.exercises.length;
+    var hasChanges =
+        existing.exerciseLogs.length != workoutDay.exercises.length;
 
     final mergedExerciseLogs = workoutDay.exercises.map((exercise) {
       final current = existingById[exercise.id];
@@ -388,7 +430,8 @@ class LocalStorageService {
           type: exercise.type,
           plannedSets: exercise.sets,
           plannedReps: exercise.reps,
-          durationMinutes: current.durationMinutes ?? exercise.targetDurationMinutes,
+          durationMinutes:
+              current.durationMinutes ?? exercise.targetDurationMinutes,
           durationSeconds:
               current.durationSeconds ?? exercise.targetDurationSeconds,
         );

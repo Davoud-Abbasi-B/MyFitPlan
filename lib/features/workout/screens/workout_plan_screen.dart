@@ -11,7 +11,9 @@ import '../../../core/widgets/section_title.dart';
 import '../models/exercise_model.dart';
 import '../models/workout_day_model.dart';
 import '../models/workout_log_model.dart';
+import '../models/workout_session_model.dart';
 import '../providers/workout_provider.dart';
+import 'workout_history_screen.dart';
 
 class WorkoutPlanScreen extends ConsumerWidget {
   const WorkoutPlanScreen({super.key});
@@ -21,7 +23,20 @@ class WorkoutPlanScreen extends ConsumerWidget {
     final snapshot = ref.watch(appSnapshotProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('برنامه تمرین')),
+      appBar: AppBar(
+        title: const Text('برنامه تمرین'),
+        actions: [
+          IconButton(
+            tooltip: 'تاریخچه تمرین‌ها',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => const WorkoutHistoryScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.history),
+          ),
+        ],
+      ),
       body: AsyncSnapshotView(
         value: snapshot,
         builder: (data) {
@@ -771,6 +786,7 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
   @override
   Widget build(BuildContext context) {
     final logAsync = ref.watch(workoutLogProvider(widget.workout));
+    final historyAsync = ref.watch(workoutHistoryProvider);
 
     return AppCard(
       child: logAsync.when(
@@ -780,6 +796,16 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
         ),
         error: (error, stackTrace) => Text('بارگذاری تمرین انجام نشد.\n$error'),
         data: (log) {
+          final now = DateTime.now();
+          final isSubmitted = historyAsync.valueOrNull?.any(
+                (session) =>
+                    session.workoutDayNumber == widget.workout.dayNumber &&
+                    session.completedAt.year == now.year &&
+                    session.completedAt.month == now.month &&
+                    session.completedAt.day == now.day,
+              ) ??
+              false;
+          final allRequiredCompleted = _allRequiredCompleted(log);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -823,6 +849,27 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
                                     ),
                                     child: Text(
                                       'امروز',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                if (isSubmitted)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      'ثبت‌شده',
                                       style: Theme.of(context)
                                           .textTheme
                                           .labelMedium
@@ -957,6 +1004,33 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
                           },
                         ),
                       ],
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: allRequiredCompleted && !isSubmitted
+                              ? () => _submitSession(context)
+                              : null,
+                          icon: Icon(
+                            isSubmitted
+                                ? Icons.check_circle
+                                : Icons.save_outlined,
+                          ),
+                          label: Text(
+                            isSubmitted ? 'ثبت‌شده' : 'ثبت جلسه تمرین',
+                          ),
+                        ),
+                      ),
+                      if (!allRequiredCompleted && !isSubmitted) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'برای ثبت جلسه، همه حرکات الزامی را کامل کن.',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -978,16 +1052,46 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
     });
   }
 
-  int _completedExercisesCount(WorkoutLog log) {
-    return log.exerciseLogs.where((entry) => entry.completed).length;
-  }
-
   String _summaryText(WorkoutLog log) {
-    final total = widget.workout.exercises.length;
-    final completed = _completedExercisesCount(log);
+    final requiredIds = widget.workout.exercises
+        .where((exercise) => !exercise.isOptional)
+        .map((exercise) => exercise.id)
+        .toSet();
+    final total = requiredIds.length;
+    final completed = log.exerciseLogs
+        .where((entry) =>
+            entry.completed && requiredIds.contains(entry.exerciseId))
+        .length;
     final completedLabel = AppDateUtils.toPersianDigits(completed.toString());
     final totalLabel = AppDateUtils.toPersianDigits(total.toString());
-    return '$completedLabel/$totalLabel کامل شده • $totalLabel حرکت';
+    return '$completedLabel از $totalLabel حرکت تکمیل شده';
+  }
+
+  bool _allRequiredCompleted(WorkoutLog log) {
+    final completedIds = log.exerciseLogs
+        .where((entry) => entry.completed)
+        .map((entry) => entry.exerciseId)
+        .toSet();
+    return widget.workout.exercises
+        .where((exercise) => !exercise.isOptional)
+        .every((exercise) => completedIds.contains(exercise.id));
+  }
+
+  Future<void> _submitSession(BuildContext context) async {
+    final result = await ref
+        .read(workoutLogProvider(widget.workout).notifier)
+        .submitSession();
+    if (!context.mounted) return;
+
+    final message = switch (result) {
+      WorkoutSubmissionResult.submitted => 'جلسه تمرین با موفقیت ثبت شد.',
+      WorkoutSubmissionResult.duplicate =>
+        'این جلسه برای امروز قبلاً ثبت شده است.',
+      WorkoutSubmissionResult.incomplete =>
+        'برای ثبت جلسه، همه حرکات الزامی را کامل کن.',
+    };
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   bool _isTodayWorkout() {
@@ -1099,6 +1203,104 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
   }
 }
 
+Future<void> _showExerciseHistory(
+  BuildContext context,
+  WidgetRef ref,
+  Exercise exercise,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      top: false,
+      child: FractionallySizedBox(
+        heightFactor: 0.72,
+        child: Consumer(
+          builder: (context, ref, child) {
+            final history = ref.watch(workoutHistoryProvider);
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                4,
+                16,
+                20 + MediaQuery.paddingOf(context).bottom,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'سوابق ${exercise.name}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: history.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, stackTrace) =>
+                          Text('بارگذاری سوابق انجام نشد.\n$error'),
+                      data: (sessions) {
+                        final records = <({
+                          WorkoutSession session,
+                          WorkoutExerciseRecord exercise
+                        })>[];
+                        for (final session in sessions) {
+                          for (final record in session.exercises) {
+                            if (record.exerciseId == exercise.id ||
+                                _normalizeExerciseName(record.exerciseName)
+                                        .toLowerCase() ==
+                                    _normalizeExerciseName(exercise.name)
+                                        .toLowerCase()) {
+                              records.add((session: session, exercise: record));
+                            }
+                          }
+                        }
+
+                        if (records.isEmpty) {
+                          return const Center(
+                            child: Text(
+                                'هنوز سابقه‌ای برای این حرکت ثبت نشده است.'),
+                          );
+                        }
+
+                        return ListView.separated(
+                          itemCount: records.length,
+                          separatorBuilder: (context, index) => const Divider(),
+                          itemBuilder: (context, index) {
+                            final item = records[index];
+                            final details =
+                                exerciseRecordDetails(item.exercise);
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(item.session.jalaliDate),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item.session.workoutTitle),
+                                  if (details.isNotEmpty)
+                                    Text(details.join(' • ')),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ),
+  );
+}
+
 class _ExerciseLogEditor extends ConsumerWidget {
   const _ExerciseLogEditor({
     required this.workout,
@@ -1154,7 +1356,9 @@ class _ExerciseLogEditor extends ConsumerWidget {
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
                   title: Text(
-                    exercise.name,
+                    exercise.isOptional
+                        ? '${exercise.name} (اختیاری)'
+                        : exercise.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -1168,7 +1372,7 @@ class _ExerciseLogEditor extends ConsumerWidget {
                 ),
               ),
               TextButton.icon(
-                onPressed: () => _showGuide(context, exercise),
+                onPressed: () => _showGuide(context, ref, exercise),
                 icon: const Icon(Icons.help_outline, size: 18),
                 label: const Text('راهنما'),
               ),
@@ -1349,7 +1553,11 @@ class _ExerciseLogEditor extends ConsumerWidget {
     return metadata.join(' | ');
   }
 
-  Future<void> _showGuide(BuildContext context, Exercise exercise) {
+  Future<void> _showGuide(
+    BuildContext context,
+    WidgetRef ref,
+    Exercise exercise,
+  ) {
     final mediaQuery = MediaQuery.of(context);
     final alternativeGuide = _alternativeGuideFor(exercise.alternativeText);
     final tips = exercise.keyTips.isNotEmpty
@@ -1387,6 +1595,15 @@ class _ExerciseLogEditor extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   _ExerciseGuideImage(exercise: exercise),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          _showExerciseHistory(context, ref, exercise),
+                      icon: const Icon(Icons.history, size: 18),
+                      label: const Text('سوابق این حرکت'),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   _GuideSection(
                     title: 'نحوه انجام حرکت',

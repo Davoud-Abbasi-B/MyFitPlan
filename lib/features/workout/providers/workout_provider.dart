@@ -4,9 +4,30 @@ import '../../../core/providers/app_providers.dart';
 import '../models/exercise_model.dart';
 import '../models/workout_day_model.dart';
 import '../models/workout_log_model.dart';
+import '../models/workout_session_model.dart';
 
-final workoutLogProvider = AsyncNotifierProviderFamily<
-    WorkoutLogNotifier, WorkoutLog, WorkoutDay>(
+enum WorkoutSubmissionResult { submitted, duplicate, incomplete }
+
+final workoutHistoryProvider =
+    AsyncNotifierProvider<WorkoutHistoryNotifier, List<WorkoutSession>>(
+  WorkoutHistoryNotifier.new,
+);
+
+class WorkoutHistoryNotifier extends AsyncNotifier<List<WorkoutSession>> {
+  @override
+  Future<List<WorkoutSession>> build() {
+    return ref.watch(localStorageServiceProvider).loadWorkoutSessions();
+  }
+
+  Future<void> deleteSession(String sessionId) async {
+    await ref.read(localStorageServiceProvider).deleteWorkoutSession(sessionId);
+    state = AsyncData(
+        await ref.read(localStorageServiceProvider).loadWorkoutSessions());
+  }
+}
+
+final workoutLogProvider =
+    AsyncNotifierProviderFamily<WorkoutLogNotifier, WorkoutLog, WorkoutDay>(
   WorkoutLogNotifier.new,
 );
 
@@ -89,7 +110,8 @@ class WorkoutLogNotifier extends FamilyAsyncNotifier<WorkoutLog, WorkoutDay> {
     );
   }
 
-  Future<void> updateIntensity(String exerciseId, ExerciseIntensity? value) async {
+  Future<void> updateIntensity(
+      String exerciseId, ExerciseIntensity? value) async {
     final current = state.valueOrNull;
     if (current == null) {
       return;
@@ -145,6 +167,30 @@ class WorkoutLogNotifier extends FamilyAsyncNotifier<WorkoutLog, WorkoutDay> {
     }
 
     await _save(current.copyWith(kneePain: value));
+  }
+
+  Future<WorkoutSubmissionResult> submitSession() async {
+    final current = state.valueOrNull;
+    if (current == null) return WorkoutSubmissionResult.incomplete;
+
+    final completedById = {
+      for (final log in current.exerciseLogs) log.exerciseId: log.completed,
+    };
+    final allRequiredCompleted = arg.exercises
+        .where((exercise) => !exercise.isOptional)
+        .every((exercise) => completedById[exercise.id] ?? false);
+    if (!allRequiredCompleted) return WorkoutSubmissionResult.incomplete;
+
+    final session = WorkoutSession.fromDraft(
+      workoutDay: arg,
+      draft: current,
+    );
+    final saved =
+        await ref.read(localStorageServiceProvider).saveWorkoutSession(session);
+    if (!saved) return WorkoutSubmissionResult.duplicate;
+
+    ref.invalidate(workoutHistoryProvider);
+    return WorkoutSubmissionResult.submitted;
   }
 
   Future<void> _save(WorkoutLog updated) async {

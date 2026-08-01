@@ -35,6 +35,14 @@ abstract final class AppDateUtils {
     return '$weekday $day $month $year';
   }
 
+  static String formatJalaliNumeric(DateTime date) {
+    final jalali = _gregorianToJalali(date);
+    final value = '${jalali.year.toString().padLeft(4, '0')}/'
+        '${jalali.month.toString().padLeft(2, '0')}/'
+        '${jalali.day.toString().padLeft(2, '0')}';
+    return toPersianDigits(value);
+  }
+
   static String toPersianDigits(String value) {
     const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -59,17 +67,15 @@ abstract final class AppDateUtils {
     final gm = date.month - 1;
     final gd = date.day - 1;
 
-    var gDayNo = 365 * gy +
-        ((gy + 3) ~/ 4) -
-        ((gy + 99) ~/ 100) +
-        ((gy + 399) ~/ 400);
+    var gDayNo =
+        365 * gy + ((gy + 3) ~/ 4) - ((gy + 99) ~/ 100) + ((gy + 399) ~/ 400);
 
     for (var month = 0; month < gm; month++) {
       gDayNo += gDaysInMonth[month];
     }
 
-    final isLeapGregorian = (date.year % 4 == 0 && date.year % 100 != 0) ||
-        (date.year % 400 == 0);
+    final isLeapGregorian =
+        (date.year % 4 == 0 && date.year % 100 != 0) || (date.year % 400 == 0);
     if (gm > 1 && isLeapGregorian) {
       gDayNo++;
     }

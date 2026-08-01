@@ -23,6 +23,7 @@ class Exercise {
     this.targetDurationSeconds,
     this.targetRirText,
     this.restText,
+    this.isOptional = false,
     this.guideText,
     this.instructionText,
     this.targetMuscles = const [],
@@ -48,6 +49,7 @@ class Exercise {
   final int? targetDurationSeconds;
   final String? targetRirText;
   final String? restText;
+  final bool isOptional;
   final String? guideText;
   final String? instructionText;
   final List<String> targetMuscles;
@@ -77,6 +79,7 @@ class Exercise {
       'targetDurationSeconds': targetDurationSeconds,
       'targetRirText': targetRirText,
       'restText': restText,
+      'isOptional': isOptional,
       'guideText': guideText,
       'instructionText': instructionText,
       'targetMuscles': targetMuscles,
@@ -106,6 +109,7 @@ class Exercise {
       targetDurationSeconds: json['targetDurationSeconds'] as int?,
       targetRirText: json['targetRirText'] as String?,
       restText: json['restText'] as String?,
+      isOptional: json['isOptional'] as bool? ?? false,
       guideText: json['guideText'] as String?,
       instructionText:
           json['instructionText'] as String? ?? json['guideText'] as String?,

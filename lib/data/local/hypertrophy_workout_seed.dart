@@ -167,6 +167,7 @@ List<WorkoutDay> hypertrophyWorkoutPlan() {
             image: 'assets/exercises/hammer_curl.png'),
         _bodyweight('h-d2-plank', 'Plank', 2, null, '1-2', '۶۰ ثانیه',
             'اگر زمان کم داشتی، این بخش اختیاری است',
+            isOptional: true,
             seconds: 60,
             instruction:
                 'ساعدها روی زمین، بدن در یک خط و شکم و باسن منقبض باشند.',
@@ -422,7 +423,8 @@ Exercise _bodyweight(String id, String name, int sets, String? reps, String rir,
     List<String> tips = const [],
     String? alternative,
     String? image,
-    int? seconds}) {
+    int? seconds,
+    bool isOptional = false}) {
   return Exercise(
       id: id,
       name: name,
@@ -432,6 +434,7 @@ Exercise _bodyweight(String id, String name, int sets, String? reps, String rir,
       notes: notes,
       targetRirText: rir,
       restText: rest,
+      isOptional: isOptional,
       targetDurationSeconds: seconds,
       instructionText: instruction,
       targetMuscles: muscles,
