@@ -1451,6 +1451,10 @@ class _ExerciseLogEditor extends ConsumerWidget {
                           ),
                     ),
                     const SizedBox(height: 10),
+                    _OptionalVideoExerciseImage(
+                      imageAssetPath: alternativeGuide.imageAssetPath,
+                    ),
+                    const SizedBox(height: 12),
                     _GuideSection(
                       title: 'نحوه انجام حرکت',
                       child: Text(alternativeGuide.instruction),
@@ -1489,6 +1493,7 @@ class _AlternativeExerciseGuide {
     required this.instruction,
     required this.muscles,
     required this.tips,
+    required this.imageAssetPath,
     this.alternative,
   });
 
@@ -1496,6 +1501,7 @@ class _AlternativeExerciseGuide {
   final String instruction;
   final String muscles;
   final List<String> tips;
+  final String imageAssetPath;
   final String? alternative;
 }
 
@@ -1520,6 +1526,7 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
       'کمر از پشتی جدا نشود.',
       'دامنه بدون درد باشد.'
     ],
+    imageAssetPath: 'assets/exercises/hack_squat.png',
     alternative: 'Goblet Squat یا Leg Press',
   ),
   'Chest-Supported Row': _AlternativeExerciseGuide(
@@ -1532,6 +1539,7 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
       'در انتهای حرکت مکث کوتاه کن.',
       'وزنه را رها نکن.'
     ],
+    imageAssetPath: 'assets/exercises/chest_supported_row.png',
     alternative: 'Seated Row',
   ),
   'Preacher Curl': _AlternativeExerciseGuide(
@@ -1544,6 +1552,7 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
       'پایین حرکت آرنج را قفل نکن.',
       'برگشت را آهسته اجرا کن.'
     ],
+    imageAssetPath: 'assets/exercises/preacher_curl.png',
     alternative: 'Cable Curl',
   ),
   'Reverse Curl': _AlternativeExerciseGuide(
@@ -1556,6 +1565,7 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
       'از تاب تنه کمک نگیر.',
       'وزنه سبک‌تر از جلو بازوی معمولی انتخاب کن.'
     ],
+    imageAssetPath: 'assets/exercises/reverse_curl.png',
     alternative: 'Hammer Curl',
   ),
   'Landmine Press': _AlternativeExerciseGuide(
@@ -1564,6 +1574,7 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
         'انتهای میله را جلوی شانه بگیر و در مسیر مورب رو به بالا پرس کن؛ دنده‌ها و لگن را ثابت نگه دار.',
     muscles: 'سرشانه و بالای سینه؛ پشت بازو و میان‌تنه به‌عنوان عضلات کمکی',
     tips: ['شانه را بالا نکش.', 'کمر گود نشود.', 'مسیر طبیعی کتف را حفظ کن.'],
+    imageAssetPath: 'assets/exercises/landmine_press.png',
     alternative: 'Shoulder Press دستگاهی بدون درد',
   ),
   'Bayesian Cable Curl': _AlternativeExerciseGuide(
@@ -1576,6 +1587,7 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
       'کشش پایین حرکت را کنترل کن.',
       'بدن را نچرخان.'
     ],
+    imageAssetPath: 'assets/exercises/bayesian_cable_curl.png',
     alternative: 'Incline DB Curl',
   ),
   'Body Saw': _AlternativeExerciseGuide(
@@ -1588,6 +1600,7 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
       'دامنه کوتاه و کنترل‌شده باشد.',
       'با خستگی کمر حرکت را متوقف کن.'
     ],
+    imageAssetPath: 'assets/exercises/body_saw.png',
     alternative: 'Ab Wheel با دامنه کوتاه یا Plank',
   ),
 };
@@ -1896,6 +1909,8 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
     'leg press': 'assets/exercises/leg_press.png',
     'Smith Squat': 'assets/exercises/smith_squat.png',
     'smith squat': 'assets/exercises/smith_squat.png',
+    'Hack Squat': 'assets/exercises/hack_squat.png',
+    'hack squat': 'assets/exercises/hack_squat.png',
     'Step-up': 'assets/exercises/step_up.png',
     'step-up': 'assets/exercises/step_up.png',
     'Leg Extension': 'assets/exercises/leg_extension.png',
@@ -1920,18 +1935,42 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
     'lat pulldown دست جمع': 'assets/exercises/lat_pulldown.png',
     'Seated Row': 'assets/exercises/seated_row.png',
     'seated row': 'assets/exercises/seated_row.png',
+    'Chest-Supported Row': 'assets/exercises/chest_supported_row.png',
+    'chest-supported row': 'assets/exercises/chest_supported_row.png',
     'Dumbbell Shoulder Press': 'assets/exercises/shoulder_press.png',
     'dumbbell shoulder press': 'assets/exercises/shoulder_press.png',
+    'Landmine Press': 'assets/exercises/landmine_press.png',
+    'landmine press': 'assets/exercises/landmine_press.png',
     'Face Pull': 'assets/exercises/face_pull.png',
     'face pull': 'assets/exercises/face_pull.png',
     'Cable Triceps Pushdown': 'assets/exercises/triceps_pushdown.png',
     'cable triceps pushdown': 'assets/exercises/triceps_pushdown.png',
+    'Overhead Cable Triceps Extension':
+        'assets/exercises/overhead_triceps_extension.png',
+    'overhead cable triceps extension':
+        'assets/exercises/overhead_triceps_extension.png',
     'Dumbbell Curl': 'assets/exercises/biceps_curl.png',
     'dumbbell curl': 'assets/exercises/biceps_curl.png',
+    'Cable Curl': 'assets/exercises/cable_curl.png',
+    'cable curl': 'assets/exercises/cable_curl.png',
+    'Preacher Curl': 'assets/exercises/preacher_curl.png',
+    'preacher curl': 'assets/exercises/preacher_curl.png',
+    'Hammer Curl': 'assets/exercises/hammer_curl.png',
+    'hammer curl': 'assets/exercises/hammer_curl.png',
+    'Reverse Curl': 'assets/exercises/reverse_curl.png',
+    'reverse curl': 'assets/exercises/reverse_curl.png',
+    'Incline DB Curl': 'assets/exercises/incline_db_curl.png',
+    'incline db curl': 'assets/exercises/incline_db_curl.png',
+    'Bayesian Cable Curl': 'assets/exercises/bayesian_cable_curl.png',
+    'bayesian cable curl': 'assets/exercises/bayesian_cable_curl.png',
     'Pallof Press': 'assets/exercises/pallof_press.png',
     'pallof press': 'assets/exercises/pallof_press.png',
     'Reverse Crunch': 'assets/exercises/reverse_crunch.png',
     'reverse crunch': 'assets/exercises/reverse_crunch.png',
+    'Ab Wheel': 'assets/exercises/ab_wheel.png',
+    'ab wheel': 'assets/exercises/ab_wheel.png',
+    'Body Saw': 'assets/exercises/body_saw.png',
+    'body saw': 'assets/exercises/body_saw.png',
     'Romanian Deadlift': 'assets/exercises/romanian_deadlift.png',
     'romanian deadlift': 'assets/exercises/romanian_deadlift.png',
     'Hip Thrust': 'assets/exercises/hip_thrust.png',
