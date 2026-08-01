@@ -27,20 +27,211 @@ class WorkoutPlanScreen extends ConsumerWidget {
         builder: (data) {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: data.workouts.length + 1,
+            itemCount: data.workouts.length + 2,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               if (index == 0) {
+                return const _ProgramGuideCard();
+              }
+              if (index == 1) {
                 return const _VideoAbsGuideCard();
               }
 
-              return _WorkoutDayCard(workout: data.workouts[index - 1]);
+              return _WorkoutDayCard(workout: data.workouts[index - 2]);
             },
           );
         },
       ),
     );
   }
+}
+
+class _ProgramGuideCard extends StatelessWidget {
+  const _ProgramGuideCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_stories_outlined, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'راهنمای اجرای برنامه هایپرتروفی',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'اصول RIR، استراحت، پیشرفت، نسخه کم‌وقت و چرخه ۱۲ هفته‌ای',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showProgramGuide(context),
+              icon: const Icon(Icons.menu_book_outlined),
+              label: const Text('مشاهده راهنمای کامل برنامه'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showProgramGuide(BuildContext context) {
+  const sections = <({String title, List<String> items})>[
+    (
+      title: 'اصول اجرای کل برنامه',
+      items: [
+        'بیشتر ست‌ها با ۱ تا ۳ تکرار ذخیره تمام شوند.',
+        'حرکات اصلی حدود RIR ۲ و حرکات ایزوله حدود RIR ۱ تا ۲ داشته باشند.',
+        'ناتوانی عضلانی فقط گاهی در آخرین ست حرکات ایزوله امن؛ نه در اسکوات، پرس یا RDL.',
+        'پایین رفتن حرکت ۲ تا ۳ ثانیه و بالا آمدن کنترل‌شده باشد.',
+        'اول تکرار را کامل کن، بعد وزنه را زیاد کن.',
+        'درد زانو، کمر یا شانه یعنی تغییر حرکت، کاهش دامنه یا کاهش وزنه.',
+      ],
+    ),
+    (
+      title: 'استراحت بین ست‌ها',
+      items: [
+        'حرکات سنگین: ۲ تا ۳ دقیقه',
+        'حرکات ایزوله: ۶۰ تا ۱۲۰ ثانیه',
+        'RDL: ۲.۵ تا ۴ دقیقه',
+        'شکم: ۶۰ تا ۹۰ ثانیه',
+      ],
+    ),
+    (
+      title: 'نسخه کوتاه‌تر برای روزهای کم‌وقت',
+      items: [
+        'پایین‌تنه A: Leg Curl را از ۲ ست به ۱ ست کاهش بده، ولی کامل حذف نکن.',
+        'بالاتنه A: Hammer/Reverse Curl یا شکم آخر جلسه را حذف کن.',
+        'پایین‌تنه B: Leg Extension را حذف کن، ولی RDL، Hip Thrust و Leg Curl را نگه دار.',
+        'بالاتنه B: Machine Chest Press یا یکی از حرکات بازو را حذف کن.',
+        'قاعده مهم: حرکات اصلی پا حذف نشوند؛ حرکات بازو و شکم قابل کاهش‌اند.',
+      ],
+    ),
+    (
+      title: 'تمرین شکم نهایی در هفته',
+      items: [
+        'پایین‌تنه A: Cable Crunch، ۳×۸-۱۵',
+        'بالاتنه A: Plank یا Cable Crunch سبک، ۲ ست و اختیاری',
+        'پایین‌تنه B: Reverse Crunch، ۲×۱۰-۲۰ + Pallof Press، ۲×۱۰-۱۵',
+        'بالاتنه B: Ab Wheel، ۳×۶-۱۲',
+      ],
+    ),
+    (
+      title: 'حجم هفتگی تقریبی برنامه',
+      items: [
+        'چهارسر: ۱۱ تا ۱۳ ست؛ همسترینگ: ۸ تا ۱۰ ست؛ سرینی: ۹ تا ۱۲ ست؛ ساق: ۸ ست',
+        'سینه: ۷ تا ۱۰ ست؛ پشت/لت: ۱۲ ست',
+        'سرشانه میانی/خلفی: ۸ تا ۱۰ ست',
+        'جلو بازو: ۵ تا ۷ ست مستقیم؛ پشت بازو: ۵ تا ۷ ست مستقیم',
+        'ساعد/گریپ: ۴ ست مستقیم یا نیمه‌مستقیم؛ شکم: ۱۰ تا ۱۲ ست',
+      ],
+    ),
+    (
+      title: 'چرخه ۱۲ هفته‌ای برنامه',
+      items: [
+        'هفته ۱ تا ۲: RIR ۲ تا ۳، تثبیت وزنه؛ یک ست کمتر در حرکات فرعی قابل قبول است.',
+        'هفته ۳ تا ۵: برنامه کامل؛ اول افزایش تکرار و سپس افزایش وزنه.',
+        'هفته ۶: کاهش فشار؛ ست‌ها حدود ۵۰ تا ۶۰٪ و RIR ۳ تا ۴.',
+        'هفته ۷ تا ۹: بازگشت به حجم کامل و پیشرفت تدریجی.',
+        'هفته ۱۰ تا ۱۱: فشار کمی بیشتر؛ آخرین ست ایزوله می‌تواند RIR ۰ تا ۱ باشد.',
+        'هفته ۱۲: کاهش فشار و ارزیابی وزن، دور شکم، رکوردها و دردها.',
+      ],
+    ),
+    (
+      title: 'روش پیشرفت در هر حرکت',
+      items: [
+        'اگر در همه ست‌ها به بالاترین تکرار رسیدی و RIR حفظ شد، جلسه بعد وزنه را کمی زیاد کن.',
+        'اگر ست اول خوب بود ولی ست‌های بعد افت شدید داشت، استراحت را بیشتر کن.',
+        'اگر دو جلسه پیاپی افت عملکرد داشتی، ۱ تا ۲ ست از همان عضله کم کن.',
+        'با درد مفصلی، حرکت، دامنه یا وزنه را تغییر بده؛ سوزش عضله با فرم خوب قابل قبول است.',
+        'اگر حرکت خیلی آسان شد، تکرار یا وزنه را افزایش بده.',
+      ],
+    ),
+    (
+      title: 'افزایش وزنه پیشنهادی',
+      items: [
+        'حرکات بالاتنه: حدود ۲ تا ۵٪',
+        'حرکات پایین‌تنه: حدود ۲.۵ تا ۵٪',
+        'دستگاه‌های سبک: گاهی ۵ تا ۱۰٪، فقط اگر فرم خراب نشود.',
+        'حرکات ایزوله: اول تکرار اضافه کن، بعد وزنه.',
+      ],
+    ),
+    (
+      title: 'گرم‌کردن استاندارد هر جلسه',
+      items: [
+        'هوازی سبک: ۵ تا ۸ دقیقه',
+        'حرکات پویا: ۳ تا ۵ دقیقه',
+        'ست گرم‌کردنی حرکت اصلی: ۲ تا ۴ ست افزایشی',
+        'کشش ایستا قبل تمرین سنگین لازم نیست؛ اگر انجام می‌دهی کوتاه باشد.',
+      ],
+    ),
+    (
+      title: 'برنامه هوازی و قدم برای کاهش دور شکم',
+      items: [
+        'هوازی بعد تمرین: ۴ جلسه × ۲۰ تا ۲۵ دقیقه با شدت متوسط و قابل گفت‌وگو.',
+        'قدم روزانه: ۸۵۰۰ تا ۹۵۰۰',
+        'پیاده‌روی آخر هفته: ۴۵ تا ۶۰ دقیقه',
+        'اگر دور شکم ۲ هفته دیگر ثابت ماند، اول ۱۵۰۰ قدم اضافه کن و بعد کالری را کم کن.',
+      ],
+    ),
+  ];
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      top: false,
+      child: FractionallySizedBox(
+        heightFactor: 0.9,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            24 + MediaQuery.paddingOf(context).bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'راهنمای کامل برنامه',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              ...sections.map(
+                (section) => Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: _GuideSection(
+                    title: section.title,
+                    child: _BulletList(items: section.items),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _VideoAbsGuideCard extends StatelessWidget {
@@ -1007,13 +1198,36 @@ class _ExerciseLogEditor extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
-                    controller: repsController,
-                    focusNode: repsFocusNode,
+                    controller: exercise.targetDurationSeconds != null &&
+                            exercise.reps == null
+                        ? durationSecondsController
+                        : repsController,
+                    focusNode: exercise.targetDurationSeconds != null &&
+                            exercise.reps == null
+                        ? durationSecondsFocusNode
+                        : repsFocusNode,
+                    keyboardType: exercise.targetDurationSeconds != null &&
+                            exercise.reps == null
+                        ? TextInputType.number
+                        : TextInputType.text,
+                    inputFormatters: exercise.targetDurationSeconds != null &&
+                            exercise.reps == null
+                        ? [FilteringTextInputFormatter.digitsOnly]
+                        : null,
                     onChanged: (value) =>
-                        notifier.updateActualReps(exercise.id, value),
-                    decoration: const InputDecoration(
-                      labelText: 'تکرار واقعی',
-                      hintText: 'مثلا 12',
+                        exercise.targetDurationSeconds != null &&
+                                exercise.reps == null
+                            ? notifier.updateDurationSeconds(exercise.id, value)
+                            : notifier.updateActualReps(exercise.id, value),
+                    decoration: InputDecoration(
+                      labelText: exercise.targetDurationSeconds != null &&
+                              exercise.reps == null
+                          ? 'زمان / ثانیه'
+                          : 'تکرار واقعی',
+                      hintText: exercise.targetDurationSeconds != null &&
+                              exercise.reps == null
+                          ? 'مثلا ${exercise.targetDurationSeconds}'
+                          : 'مثلا 12',
                     ),
                   ),
                 ),
@@ -1114,21 +1328,30 @@ class _ExerciseLogEditor extends ConsumerWidget {
   }
 
   String _exerciseSubtitle(Exercise exercise, ExerciseLog log) {
-    switch (exercise.type) {
-      case ExerciseType.strength:
-        return '${exercise.sets ?? 0} ست • ${exercise.reps ?? ''}';
-      case ExerciseType.cardio:
-        return 'هدف ${log.durationMinutes ?? exercise.targetDurationMinutes ?? 0} دقیقه';
-      case ExerciseType.bodyweight:
-        if (exercise.targetDurationSeconds != null) {
-          return '${exercise.sets ?? 0} ست • ${exercise.targetDurationSeconds} ثانیه';
-        }
-        return '${exercise.sets ?? 0} ست • ${exercise.reps ?? ''}';
-    }
+    final prescription = switch (exercise.type) {
+      ExerciseType.strength =>
+        exercise.targetDurationSeconds != null && exercise.reps == null
+            ? '${exercise.sets ?? 0}×${exercise.targetDurationSeconds} ثانیه'
+            : '${exercise.sets ?? 0}×${exercise.reps ?? ''}',
+      ExerciseType.cardio =>
+        'هدف ${log.durationMinutes ?? exercise.targetDurationMinutes ?? 0} دقیقه',
+      ExerciseType.bodyweight => exercise.targetDurationSeconds != null
+          ? '${exercise.sets ?? 0}×${exercise.targetDurationSeconds} ثانیه'
+          : '${exercise.sets ?? 0}×${exercise.reps ?? ''}',
+    };
+    final metadata = <String>[
+      prescription,
+      if ((exercise.targetRirText ?? '').isNotEmpty)
+        'RIR ${exercise.targetRirText}',
+      if ((exercise.restText ?? '').isNotEmpty) 'استراحت ${exercise.restText}',
+      if (exercise.notes.isNotEmpty) exercise.notes,
+    ];
+    return metadata.join(' | ');
   }
 
   Future<void> _showGuide(BuildContext context, Exercise exercise) {
     final mediaQuery = MediaQuery.of(context);
+    final alternativeGuide = _alternativeGuideFor(exercise.alternativeText);
     final tips = exercise.keyTips.isNotEmpty
         ? exercise.keyTips
         : [
@@ -1218,6 +1441,38 @@ class _ExerciseLogEditor extends ConsumerWidget {
                       ),
                     ),
                   ],
+                  if (alternativeGuide != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'راهنمای ${alternativeGuide.name}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 10),
+                    _GuideSection(
+                      title: 'نحوه انجام حرکت',
+                      child: Text(alternativeGuide.instruction),
+                    ),
+                    const SizedBox(height: 10),
+                    _GuideSection(
+                      title: 'عضلات درگیر',
+                      child: Text(alternativeGuide.muscles),
+                    ),
+                    const SizedBox(height: 10),
+                    _GuideSection(
+                      title: 'نکات مهم',
+                      child: _BulletList(items: alternativeGuide.tips),
+                    ),
+                    if (alternativeGuide.alternative != null) ...[
+                      const SizedBox(height: 10),
+                      _GuideSection(
+                        title: 'جایگزین پیشنهادی',
+                        child: Text(alternativeGuide.alternative!),
+                      ),
+                    ],
+                  ],
                 ],
               ),
             ),
@@ -1227,6 +1482,115 @@ class _ExerciseLogEditor extends ConsumerWidget {
     );
   }
 }
+
+class _AlternativeExerciseGuide {
+  const _AlternativeExerciseGuide({
+    required this.name,
+    required this.instruction,
+    required this.muscles,
+    required this.tips,
+    this.alternative,
+  });
+
+  final String name;
+  final String instruction;
+  final String muscles;
+  final List<String> tips;
+  final String? alternative;
+}
+
+_AlternativeExerciseGuide? _alternativeGuideFor(String? alternativeText) {
+  if (alternativeText == null) return null;
+  for (final entry in _alternativeExerciseGuides.entries) {
+    if (alternativeText.toLowerCase().contains(entry.key.toLowerCase())) {
+      return entry.value;
+    }
+  }
+  return null;
+}
+
+const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
+  'Hack Squat': _AlternativeExerciseGuide(
+    name: 'Hack Squat',
+    instruction:
+        'پشت و لگن را به پشتی دستگاه بچسبان، پاها را در جای بدون درد قرار بده و با کنترل پایین برو و از وسط پا بالا بیا.',
+    muscles: 'چهارسر ران، سرینی؛ همسترینگ و ساق به‌عنوان عضلات کمکی',
+    tips: [
+      'زانوها داخل نروند.',
+      'کمر از پشتی جدا نشود.',
+      'دامنه بدون درد باشد.'
+    ],
+    alternative: 'Goblet Squat یا Leg Press',
+  ),
+  'Chest-Supported Row': _AlternativeExerciseGuide(
+    name: 'Chest-Supported Row',
+    instruction:
+        'سینه را روی پد ثابت نگه دار، آرنج‌ها را عقب بکش و کتف‌ها را بدون بلند کردن شانه جمع کن.',
+    muscles: 'پشت میانی و لت؛ جلو بازو و پشت شانه به‌عنوان عضلات کمکی',
+    tips: [
+      'سینه از پد جدا نشود.',
+      'در انتهای حرکت مکث کوتاه کن.',
+      'وزنه را رها نکن.'
+    ],
+    alternative: 'Seated Row',
+  ),
+  'Preacher Curl': _AlternativeExerciseGuide(
+    name: 'Preacher Curl',
+    instruction:
+        'بازوها را روی پد ثابت کن، وزنه را با خم کردن آرنج بالا بیاور و تا کشش کنترل‌شده پایین ببر.',
+    muscles: 'جلو بازو؛ براکیالیس و ساعد به‌عنوان عضلات کمکی',
+    tips: [
+      'آرنج از پد جدا نشود.',
+      'پایین حرکت آرنج را قفل نکن.',
+      'برگشت را آهسته اجرا کن.'
+    ],
+    alternative: 'Cable Curl',
+  ),
+  'Reverse Curl': _AlternativeExerciseGuide(
+    name: 'Reverse Curl',
+    instruction:
+        'میله یا کابل را با کف دست رو به پایین بگیر و با آرنج‌های ثابت تا دامنه کنترل‌شده بالا بیاور.',
+    muscles: 'براکیالیس و ساعد؛ جلو بازو به‌عنوان عضله کمکی',
+    tips: [
+      'مچ‌ها صاف بمانند.',
+      'از تاب تنه کمک نگیر.',
+      'وزنه سبک‌تر از جلو بازوی معمولی انتخاب کن.'
+    ],
+    alternative: 'Hammer Curl',
+  ),
+  'Landmine Press': _AlternativeExerciseGuide(
+    name: 'Landmine Press',
+    instruction:
+        'انتهای میله را جلوی شانه بگیر و در مسیر مورب رو به بالا پرس کن؛ دنده‌ها و لگن را ثابت نگه دار.',
+    muscles: 'سرشانه و بالای سینه؛ پشت بازو و میان‌تنه به‌عنوان عضلات کمکی',
+    tips: ['شانه را بالا نکش.', 'کمر گود نشود.', 'مسیر طبیعی کتف را حفظ کن.'],
+    alternative: 'Shoulder Press دستگاهی بدون درد',
+  ),
+  'Bayesian Cable Curl': _AlternativeExerciseGuide(
+    name: 'Bayesian Cable Curl',
+    instruction:
+        'پشت به کابل بایست، بازو را کمی عقب بدن نگه دار و بدون جلو آوردن شانه آرنج را خم کن.',
+    muscles: 'جلو بازو در طول عضلانی بلند؛ براکیالیس به‌عنوان عضله کمکی',
+    tips: [
+      'بازو عقب و ثابت بماند.',
+      'کشش پایین حرکت را کنترل کن.',
+      'بدن را نچرخان.'
+    ],
+    alternative: 'Incline DB Curl',
+  ),
+  'Body Saw': _AlternativeExerciseGuide(
+    name: 'Body Saw',
+    instruction:
+        'در پلانک ساعد قرار بگیر و بدن صاف را با حرکت شانه‌ها کمی جلو و عقب ببر، بدون اینکه کمر گود شود.',
+    muscles: 'راست شکمی و عضلات عمقی مرکزی؛ سرشانه و لت به‌عنوان عضلات کمکی',
+    tips: [
+      'لگن ثابت بماند.',
+      'دامنه کوتاه و کنترل‌شده باشد.',
+      'با خستگی کمر حرکت را متوقف کن.'
+    ],
+    alternative: 'Ab Wheel با دامنه کوتاه یا Plank',
+  ),
+};
 
 class _ExerciseGuideImage extends StatelessWidget {
   const _ExerciseGuideImage({required this.exercise});
@@ -1424,7 +1788,7 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
   ];
 
   switch (workout.id) {
-    case 'day-1':
+    case 'hypertrophy-day-1':
       return _DayGuideContent(
         summary:
             'تمرکز این روز روی چهارسر، کنترل زانو، حجم پا و شکم جلسه ۱ است.',
@@ -1432,32 +1796,32 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۱',
             items: [
-              'Step-up با ارتفاع کم و کنترل‌شده انجام شود.',
-              'اگر زانو اذیت شد، Step-up همان جلسه حذف شود یا با Leg Press سبک جایگزین شود.',
-              'Plank با فرم خوب ۴۵ تا ۶۰ ثانیه هدف‌گذاری شود.',
+              'اگر زانو حساس بود، Leg Press را پیش از Smith Squat انجام بده.',
+              'Leg Curl این روز تعادل حجم جلوی ران و همسترینگ را حفظ می‌کند.',
+              'Cable Crunch حرکت اصلی و قابل‌پیشرفت شکم این روز است.',
               'برای هوازی انتهای جلسه، شیب ملایم یا الپتیکال مناسب است.',
             ],
           ),
           ...commonSections,
         ],
       );
-    case 'day-2':
+    case 'hypertrophy-day-2':
       return _DayGuideContent(
         summary:
-            'این روز روی فشار و کشش بالاتنه تمرکز دارد و در پایان Pallof Press و Reverse Crunch هم اضافه می‌شود.',
+            'این روز روی فشار و کشش بالاتنه، حجم مستقیم بازو و یک بخش اختیاری شکم تمرکز دارد.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۲',
             items: [
-              'Pallof Press و Reverse Crunch باید بعد از حرکات بازو و قبل از هوازی انجام شوند.',
-              'در پرس‌های سرشانه، گردن و کتف باید آرام و کنترل‌شده بمانند.',
+              'Plank در روز کم‌وقت اختیاری است و بعد از حرکات بازو انجام می‌شود.',
+              'در پرس‌ها، کتف باید عقب، پایین و کنترل‌شده بماند.',
               'Bench Press در صورت نیاز با Chest Press Machine قابل جایگزینی است.',
             ],
           ),
           ...commonSections,
         ],
       );
-    case 'day-4':
+    case 'hypertrophy-day-3':
       return _DayGuideContent(
         summary: 'تمرکز این روز روی باسن، پشت پا، همسترینگ و شکم جلسه ۲ است.',
         sections: [
@@ -1472,23 +1836,23 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
           ...commonSections,
         ],
       );
-    case 'day-5':
+    case 'hypertrophy-day-4':
       return _DayGuideContent(
         summary:
-            'این روز ترکیبی از بالاتنه، حرکات اصلاحی و شکم جلسه ۳ برای ثبات بدن است.',
+            'این روز روی لت، سرشانه، بازو، ساعد و قدرت ضد اکستنشن شکم تمرکز دارد.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۴',
             items: [
-              'Lat Pulldown دست جمع، Cable Row تک‌دست و Farmer Carry با تمرکز روی ثبات کتف اجرا شوند.',
+              'Assisted Pull-up، Single-Arm Cable Row و Farmer Carry با تمرکز روی ثبات کتف اجرا شوند.',
               'Lateral Raise و Rear Delt Fly با وزنه سبک و فرم تمیز بهتر جواب می‌دهند.',
-              'Reverse Crunch بعد از Pallof Press و قبل از هوازی قرار بگیرد.',
+              'Ab Wheel بعد از Farmer Carry و پیش از هوازی قرار می‌گیرد.',
             ],
           ),
           ...commonSections,
         ],
       );
-    case 'day-outdoor':
+    case 'hypertrophy-day-5':
       return const _DayGuideContent(
         summary:
             'این روز برای ریکاوری فعال، چربی‌سوزی و کامل کردن قدم روزانه طراحی شده است.',

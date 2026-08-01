@@ -21,6 +21,8 @@ class Exercise {
     this.defaultWeightKg,
     this.targetDurationMinutes,
     this.targetDurationSeconds,
+    this.targetRirText,
+    this.restText,
     this.guideText,
     this.instructionText,
     this.targetMuscles = const [],
@@ -44,6 +46,8 @@ class Exercise {
   final double? defaultWeightKg;
   final int? targetDurationMinutes;
   final int? targetDurationSeconds;
+  final String? targetRirText;
+  final String? restText;
   final String? guideText;
   final String? instructionText;
   final List<String> targetMuscles;
@@ -71,6 +75,8 @@ class Exercise {
       'defaultWeightKg': defaultWeightKg,
       'targetDurationMinutes': targetDurationMinutes,
       'targetDurationSeconds': targetDurationSeconds,
+      'targetRirText': targetRirText,
+      'restText': restText,
       'guideText': guideText,
       'instructionText': instructionText,
       'targetMuscles': targetMuscles,
@@ -98,6 +104,8 @@ class Exercise {
       defaultWeightKg: (json['defaultWeightKg'] as num?)?.toDouble(),
       targetDurationMinutes: json['targetDurationMinutes'] as int?,
       targetDurationSeconds: json['targetDurationSeconds'] as int?,
+      targetRirText: json['targetRirText'] as String?,
+      restText: json['restText'] as String?,
       guideText: json['guideText'] as String?,
       instructionText:
           json['instructionText'] as String? ?? json['guideText'] as String?,

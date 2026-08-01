@@ -7,9 +7,12 @@ import '../../features/settings/models/user_profile_model.dart';
 import '../../features/supplements/models/supplement_model.dart';
 import '../../features/workout/models/exercise_model.dart';
 import '../../features/workout/models/workout_day_model.dart';
+import 'hypertrophy_workout_seed.dart';
 
 abstract final class DefaultSeedData {
-  static const int workoutSeedVersion = 2;
+  static const int workoutSeedVersion = 3;
+
+  static List<WorkoutDay> workouts() => hypertrophyWorkoutPlan();
 
   static UserProfile profile() {
     return const UserProfile(
@@ -47,7 +50,7 @@ abstract final class DefaultSeedData {
     );
   }
 
-  static List<WorkoutDay> workouts() {
+  static List<WorkoutDay> legacyWorkouts() {
     return const [
       WorkoutDay(
         id: 'day-1',
@@ -263,7 +266,8 @@ abstract final class DefaultSeedData {
               'مچ را نشکن.',
               'مسیر حرکت کنترل‌شده باشد.',
             ],
-            alternativeText: 'در صورت نیاز Chest Press Machine می‌تواند جایگزین باشد.',
+            alternativeText:
+                'در صورت نیاز Chest Press Machine می‌تواند جایگزین باشد.',
             imageAssetPath: 'assets/exercises/bench_press.png',
           ),
           Exercise(
@@ -506,7 +510,8 @@ abstract final class DefaultSeedData {
               'وزنه در برگشت رها نشود.',
               'لگن از دستگاه جدا نشود.',
             ],
-            alternativeText: 'بسته به باشگاه می‌توان از نوع خوابیده یا نشسته استفاده کرد.',
+            alternativeText:
+                'بسته به باشگاه می‌توان از نوع خوابیده یا نشسته استفاده کرد.',
             imageAssetPath: 'assets/exercises/leg_curl.png',
           ),
           Exercise(
