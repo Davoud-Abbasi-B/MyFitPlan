@@ -40,4 +40,12 @@ void main() {
     expect(unsupported.hasUnsupportedUnit, isTrue);
     expect(unsupported.normalizedFoodName, 'بادام');
   });
+
+  test('parses item quantity for dolmeh grape leaves', () {
+    final food = parser.parse('۱۴ عدد دلمه برگ مو').single;
+    expect(food.quantity, 14);
+    expect(food.unit, FoodUnit.item);
+    expect(food.normalizedFoodName, 'دلمه برگ مو');
+    expect(food.quantityText, '۱۴ عدد');
+  });
 }

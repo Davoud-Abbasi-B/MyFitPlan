@@ -2,6 +2,8 @@ import 'daily_nutrition_model.dart';
 
 enum FoodSourceType { local, usda, manual }
 
+enum FoodResolutionStatus { resolved, ambiguous, needsPortion, notFound }
+
 class FoodAnalysisResult {
   const FoodAnalysisResult({
     required this.originalInput,
@@ -99,6 +101,8 @@ class FoodAnalysisBatchResult {
   final List<UnresolvedFoodItem> unresolvedItems;
 
   bool get needsUserAction => unresolvedItems.isNotEmpty;
+  bool get hasResolvedItems => items.isNotEmpty;
+  bool get canConfirm => hasResolvedItems && !needsUserAction;
 
   DailyNutritionTotals get totals {
     var calories = 0.0;
@@ -185,6 +189,7 @@ class UnresolvedFoodItem {
     required this.quantity,
     required this.unit,
     required this.reason,
+    required this.status,
     this.consumedGrams,
     this.searchPhrase,
     this.candidates = const [],
@@ -198,7 +203,10 @@ class UnresolvedFoodItem {
   final double? consumedGrams;
   final String? searchPhrase;
   final String reason;
+  final FoodResolutionStatus status;
   final List<FoodAnalysisCandidate> candidates;
+
+  bool get allowsManualEntry => status != FoodResolutionStatus.resolved;
 }
 
 double _oneDecimal(double value) => double.parse(value.toStringAsFixed(1));

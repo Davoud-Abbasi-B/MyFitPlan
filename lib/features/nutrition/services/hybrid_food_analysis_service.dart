@@ -34,11 +34,19 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
     final warnings = <String>[];
     for (final parsed in parsedItems) {
       if (parsed.isQuantityAmbiguous) {
-        unresolved.add(_unresolved(parsed, 'مقدار مصرف مشخص نشده است.'));
+        unresolved.add(_unresolved(
+          parsed,
+          'مقدار مصرف مشخص نشده است.',
+          status: FoodResolutionStatus.needsPortion,
+        ));
         continue;
       }
       if (parsed.hasUnsupportedUnit) {
-        unresolved.add(_unresolved(parsed, 'واحد واردشده پشتیبانی نمی‌شود.'));
+        unresolved.add(_unresolved(
+          parsed,
+          'واحد واردشده پشتیبانی نمی‌شود.',
+          status: FoodResolutionStatus.needsPortion,
+        ));
         continue;
       }
 
@@ -48,7 +56,10 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         if (grams == null) {
           unresolved.add(_unresolved(
             parsed,
-            'برای این واحد تبدیل مطمئنی وجود ندارد؛ مقدار را به گرم وارد کنید.',
+            parsed.unit == FoodUnit.item
+                ? 'وزن تقریبی هر عدد مشخص نیست.'
+                : 'برای این واحد تبدیل مطمئنی وجود ندارد؛ مقدار را به گرم وارد کنید.',
+            status: FoodResolutionStatus.needsPortion,
           ));
           continue;
         }
@@ -60,9 +71,8 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
       if (phrase == null || !usda.isConfigured) {
         unresolved.add(_unresolved(
           parsed,
-          phrase == null
-              ? 'معادل مطمئن انگلیسی برای جست‌وجو وجود ندارد.'
-              : 'جست‌وجوی آنلاین غیرفعال است.',
+          'این خوراکی در پایگاه داده موجود نیست.',
+          status: FoodResolutionStatus.notFound,
           searchPhrase: phrase,
         ));
         continue;
@@ -77,6 +87,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
             unresolved.add(_unresolved(
               parsed,
               'برای این واحد، وزن قابل اتکایی پیدا نشد.',
+              status: FoodResolutionStatus.needsPortion,
               searchPhrase: phrase,
               candidates: [selected],
             ));
@@ -105,6 +116,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         unresolved.add(_unresolved(
           parsed,
           'چند خوراکی مشابه پیدا شد؛ یکی را انتخاب کنید.',
+          status: FoodResolutionStatus.ambiguous,
           searchPhrase: phrase,
           candidates: candidates.take(5).toList(growable: false),
         ));
@@ -112,7 +124,8 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         if (error.type == FoodAnalysisErrorType.noResults) {
           unresolved.add(_unresolved(
             parsed,
-            foodAnalysisErrorMessage(error),
+            'این خوراکی در پایگاه داده موجود نیست.',
+            status: FoodResolutionStatus.notFound,
             searchPhrase: phrase,
           ));
         } else {
@@ -120,6 +133,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
           unresolved.add(_unresolved(
             parsed,
             foodAnalysisErrorMessage(error),
+            status: FoodResolutionStatus.notFound,
             searchPhrase: phrase,
           ));
         }
@@ -168,6 +182,33 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
     return resultFromUsda(parsed, candidate, grams);
   }
 
+  Future<FoodAnalysisResult?> resolveLocalPortion(
+    UnresolvedFoodItem unresolved,
+    double gramsPerItem,
+  ) async {
+    if (unresolved.status != FoodResolutionStatus.needsPortion ||
+        unresolved.unit != FoodUnit.item.name ||
+        unresolved.quantity == null ||
+        gramsPerItem <= 0) {
+      return null;
+    }
+    final local = await localDatabase.findExact(unresolved.foodName);
+    if (local == null) return null;
+    final parsed = ParsedFoodInput(
+      originalSegment: unresolved.originalSegment,
+      normalizedFoodName: unresolved.foodName,
+      quantity: unresolved.quantity,
+      unit: FoodUnit.item,
+      quantityText: unresolved.quantityText,
+    );
+    return resultFromLocal(
+      parsed,
+      local,
+      unresolved.quantity! * gramsPerItem,
+      gramsPerItem: gramsPerItem,
+    );
+  }
+
   static double? consumedGrams(
     ParsedFoodInput parsed, {
     LocalFoodDefinition? local,
@@ -193,9 +234,13 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
   static FoodAnalysisResult resultFromLocal(
     ParsedFoodInput parsed,
     LocalFoodDefinition food,
-    double grams,
-  ) {
+    double grams, {
+    double? gramsPerItem,
+  }) {
     final multiplier = grams / food.basisAmount;
+    final configuredItemGrams = parsed.unit == FoodUnit.item
+        ? gramsPerItem ?? food.defaultGramConversions[FoodUnit.item.label]
+        : null;
     return FoodAnalysisResult(
       originalInput: parsed.originalSegment,
       foodName: food.nameFa,
@@ -205,10 +250,17 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
       proteinGrams: _round(food.proteinGrams * multiplier),
       carbsGrams: _round(food.carbsGrams * multiplier),
       fatGrams: _round(food.fatGrams * multiplier),
-      isEstimated: true,
+      isEstimated: food.isEstimated,
       confidence: food.isCustom ? 'high' : 'medium',
-      assumptions: food.assumptions,
-      warnings: const ['مقادیر تقریبی هستند.'],
+      assumptions: [
+        ...food.assumptions,
+        if (configuredItemGrams != null)
+          'وزن تقریبی هر عدد: ${_formatGramValue(configuredItemGrams)} گرم',
+      ],
+      warnings: [
+        ...food.warnings,
+        if (food.warnings.isEmpty) 'مقادیر تقریبی هستند.',
+      ],
       sourceType: food.isCustom ? FoodSourceType.manual : FoodSourceType.local,
       sourceLabel: food.isCustom ? 'خوراکی‌های من' : 'پایگاه داخلی',
     );
@@ -242,6 +294,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
   static UnresolvedFoodItem _unresolved(
     ParsedFoodInput parsed,
     String reason, {
+    required FoodResolutionStatus status,
     String? searchPhrase,
     List<FoodAnalysisCandidate> candidates = const [],
   }) =>
@@ -252,9 +305,14 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         quantity: parsed.quantity,
         unit: parsed.unit?.name,
         reason: reason,
+        status: status,
         searchPhrase: searchPhrase,
         candidates: candidates,
       );
 }
 
 double _round(double value) => double.parse(value.toStringAsFixed(1));
+
+String _formatGramValue(double value) => value == value.roundToDouble()
+    ? value.toInt().toString()
+    : value.toStringAsFixed(1);

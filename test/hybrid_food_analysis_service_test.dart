@@ -46,6 +46,71 @@ void main() {
     final batch = await _service().analyze('۱ کاسه نان بربری');
     expect(batch.needsUserAction, isTrue);
     expect(batch.items, isEmpty);
+    expect(
+      batch.unresolvedItems.single.status,
+      FoodResolutionStatus.needsPortion,
+    );
+  });
+
+  test('missing item conversion returns needsPortion', () async {
+    final service = _service();
+    final batch = await service.analyze('۲ عدد نان بربری');
+    final unresolved = batch.unresolvedItems.single;
+    expect(unresolved.status, FoodResolutionStatus.needsPortion);
+    expect(unresolved.reason, 'وزن تقریبی هر عدد مشخص نیست.');
+    expect(unresolved.allowsManualEntry, isTrue);
+
+    final resolved = await service.resolveLocalPortion(unresolved, 40);
+    expect(resolved?.consumedGrams, 80);
+    expect(resolved?.calories, 216);
+    expect(
+      resolved?.assumptions,
+      contains('وزن تقریبی هر عدد: 40 گرم'),
+    );
+  });
+
+  test('dolmeh alias matches bundled local database', () async {
+    final database = LocalFoodDatabaseService();
+    expect((await database.findExact('دلمه برگ'))?.nameFa, 'دلمه برگ مو');
+  });
+
+  test('14 dolmeh items resolve locally without USDA and use item grams',
+      () async {
+    final usda = _FakeUsda([]);
+    final service = HybridFoodAnalysisService(
+      parser: const PersianFoodParser(),
+      localDatabase: LocalFoodDatabaseService(),
+      usda: usda,
+      cache: MemoryFoodSearchCacheService(),
+    );
+
+    final batch = await service.analyze('۱۴ عدد دلمه برگ مو');
+
+    expect(batch.canConfirm, isTrue);
+    expect(batch.unresolvedItems, isEmpty);
+    expect(batch.items.single.sourceType, FoodSourceType.local);
+    expect(batch.items.single.consumedGrams, 490);
+    expect(batch.items.single.calories, 882);
+    expect(batch.items.single.proteinGrams, 24.5);
+    expect(batch.items.single.carbsGrams, 122.5);
+    expect(batch.items.single.fatGrams, 34.3);
+    expect(
+      batch.items.single.assumptions,
+      contains('وزن تقریبی هر عدد: 35 گرم'),
+    );
+    expect(usda.calls, 0);
+  });
+
+  test('not-found food is unresolved and cannot form a zero valid result',
+      () async {
+    final batch = await _service().analyze('۱۴ عدد خوراک ناشناخته');
+    final unresolved = batch.unresolvedItems.single;
+    expect(batch.items, isEmpty);
+    expect(batch.hasResolvedItems, isFalse);
+    expect(batch.canConfirm, isFalse);
+    expect(unresolved.status, FoodResolutionStatus.notFound);
+    expect(unresolved.reason, 'این خوراکی در پایگاه داده موجود نیست.');
+    expect(unresolved.allowsManualEntry, isTrue);
   });
 
   test('ambiguous USDA matches require selection', () async {

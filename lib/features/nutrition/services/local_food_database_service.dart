@@ -18,6 +18,8 @@ class LocalFoodDefinition {
     required this.source,
     required this.defaultGramConversions,
     this.assumptions = const [],
+    this.warnings = const [],
+    this.isEstimated = true,
     this.isCustom = false,
   });
 
@@ -33,6 +35,8 @@ class LocalFoodDefinition {
   final String source;
   final Map<String, double> defaultGramConversions;
   final List<String> assumptions;
+  final List<String> warnings;
+  final bool isEstimated;
   final bool isCustom;
 
   factory LocalFoodDefinition.fromJson(Map<String, dynamic> json) {
@@ -59,6 +63,10 @@ class LocalFoodDefinition {
       assumptions: (json['assumptions'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(growable: false),
+      warnings: (json['warnings'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
+      isEstimated: json['isEstimated'] as bool? ?? true,
       isCustom: json['isCustom'] as bool? ?? false,
     );
   }
@@ -77,6 +85,8 @@ class LocalFoodDefinition {
         'source': source,
         'defaultGramConversions': defaultGramConversions,
         'assumptions': assumptions,
+        'warnings': warnings,
+        'isEstimated': isEstimated,
         'isCustom': isCustom,
       };
 }

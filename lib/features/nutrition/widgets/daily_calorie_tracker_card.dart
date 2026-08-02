@@ -93,15 +93,12 @@ class _DailyCalorieTrackerCardState
             unresolved,
             choice.candidate!,
           );
-          result ??= await _showManualEntry(unresolved);
         } else if (choice.action == _CandidateAction.manual) {
           result = await _showManualEntry(unresolved);
         } else if (choice.action == _CandidateAction.retry) {
           _inputController.text = unresolved.originalSegment;
           _inputFocusNode.requestFocus();
         }
-      } else {
-        result = await _showManualEntry(unresolved);
       }
       if (result != null) {
         items.add(result);
@@ -115,6 +112,74 @@ class _DailyCalorieTrackerCardState
       unresolvedItems: remaining,
       warnings: batch.warnings,
     );
+  }
+
+  Future<void> _resolveManually(UnresolvedFoodItem unresolved) async {
+    final result = await _showManualEntry(unresolved);
+    if (!mounted || result == null) return;
+    _replaceUnresolved(unresolved, result);
+  }
+
+  Future<void> _enterItemWeight(UnresolvedFoodItem unresolved) async {
+    final controller = TextEditingController();
+    final gramsPerItem = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('وزن تقریبی هر عدد'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'وزن هر عدد به گرم',
+            suffixText: 'گرم',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('لغو'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(
+                normalizePersianText(controller.text),
+              );
+              if (value != null && value > 0) Navigator.pop(context, value);
+            },
+            child: const Text('محاسبه'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (!mounted || gramsPerItem == null) return;
+    final result = await ref
+        .read(hybridFoodAnalysisServiceProvider)
+        .resolveLocalPortion(unresolved, gramsPerItem);
+    if (!mounted || result == null) return;
+    _replaceUnresolved(unresolved, result);
+  }
+
+  void _replaceUnresolved(
+    UnresolvedFoodItem unresolved,
+    FoodAnalysisResult result,
+  ) {
+    final preview = _preview;
+    if (preview == null) return;
+    setState(() {
+      _preview = FoodAnalysisBatchResult(
+        originalInput: preview.originalInput,
+        items: [...preview.items, result],
+        unresolvedItems: preview.unresolvedItems
+            .where((item) => !identical(item, unresolved))
+            .toList(growable: false),
+        warnings: preview.warnings,
+      );
+      _inputError = _preview!.needsUserAction
+          ? 'برای موارد حل‌نشده، مقدار یا خوراکی مناسب را مشخص کنید.'
+          : null;
+    });
   }
 
   Future<_CandidateSheetResult> _showCandidateSheet(
@@ -510,6 +575,8 @@ class _DailyCalorieTrackerCardState
             isAdding: _isAddingPreview,
             onAdd: _addPreview,
             onEdit: _editInput,
+            onManual: _resolveManually,
+            onPortion: _enterItemWeight,
             onCancel:
                 _isAddingPreview ? null : () => setState(() => _preview = null),
           ),
@@ -750,6 +817,8 @@ class _AnalysisPreview extends StatelessWidget {
     required this.isAdding,
     required this.onAdd,
     required this.onEdit,
+    required this.onManual,
+    required this.onPortion,
     required this.onCancel,
   });
 
@@ -757,6 +826,8 @@ class _AnalysisPreview extends StatelessWidget {
   final bool isAdding;
   final VoidCallback onAdd;
   final VoidCallback onEdit;
+  final Future<void> Function(UnresolvedFoodItem) onManual;
+  final Future<void> Function(UnresolvedFoodItem) onPortion;
   final VoidCallback? onCancel;
 
   @override
@@ -788,21 +859,54 @@ class _AnalysisPreview extends StatelessWidget {
           ),
           if (batch.unresolvedItems.isNotEmpty) ...[
             const SizedBox(height: 6),
-            ...batch.unresolvedItems.map(
-              (item) => Text(
-                '${item.foodName}: ${item.reason}',
-                style: const TextStyle(color: AppColors.warning),
-              ),
+            ...batch.unresolvedItems.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.foodName,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        item.reason,
+                        style: const TextStyle(color: AppColors.warning),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          if (item.status ==
+                                  FoodResolutionStatus.needsPortion &&
+                              item.unit == FoodUnit.item.name)
+                            OutlinedButton(
+                              onPressed:
+                                  isAdding ? null : () => onPortion(item),
+                              child: const Text('وزن هر عدد'),
+                            ),
+                          if (item.allowsManualEntry)
+                            FilledButton.tonal(
+                              key: ValueKey('manual-entry-${item.foodName}'),
+                              onPressed: isAdding ? null : () => onManual(item),
+                              child: const Text('ورود دستی'),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+          if (batch.items.isNotEmpty) ...[
+            const Divider(),
+            Text(
+              'جمع: ${_number(batch.totals.calories)} کالری | '
+              'پروتئین ${_number(batch.totals.proteinGrams)} | '
+              'کربوهیدرات ${_number(batch.totals.carbsGrams)} | '
+              'چربی ${_number(batch.totals.fatGrams)} گرم',
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ],
-          const Divider(),
-          Text(
-            'جمع: ${_number(batch.totals.calories)} کالری | '
-            'پروتئین ${_number(batch.totals.proteinGrams)} | '
-            'کربوهیدرات ${_number(batch.totals.carbsGrams)} | '
-            'چربی ${_number(batch.totals.fatGrams)} گرم',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
           if (batch.warnings.isNotEmpty) ...[
             const SizedBox(height: 6),
             ...batch.warnings.map(
@@ -818,7 +922,7 @@ class _AnalysisPreview extends StatelessWidget {
             runSpacing: 6,
             children: [
               FilledButton(
-                onPressed: isAdding || batch.needsUserAction ? null : onAdd,
+                onPressed: isAdding || !batch.canConfirm ? null : onAdd,
                 child:
                     Text(isAdding ? 'در حال افزودن...' : 'افزودن همه به امروز'),
               ),
@@ -855,6 +959,11 @@ class _AnalysisItem extends StatelessWidget {
           '${_integer(index)}. ${result.foodName} • ${result.quantityText}',
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
+        if (result.quantityText.contains('عدد') && result.consumedGrams != null)
+          Text(
+            '${result.quantityText} — وزن تقریبی کل: '
+            '${_number(result.consumedGrams!)} گرم',
+          ),
         Text(
           '${_number(result.calories)} کالری | '
           'پروتئین ${_number(result.proteinGrams)} | '
