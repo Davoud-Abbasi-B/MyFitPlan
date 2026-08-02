@@ -9,6 +9,8 @@ import '../../../core/widgets/section_title.dart';
 import '../../craving/widgets/craving_control_sheet.dart';
 import '../models/meal_model.dart';
 import '../providers/nutrition_provider.dart';
+import '../widgets/daily_calorie_tracker_card.dart';
+import 'nutrition_history_screen.dart';
 
 class NutritionScreen extends ConsumerWidget {
   const NutritionScreen({super.key});
@@ -19,7 +21,20 @@ class NutritionScreen extends ConsumerWidget {
     final nutritionLogAsync = ref.watch(nutritionLogProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('تغذیه')),
+      appBar: AppBar(
+        title: const Text('تغذیه'),
+        actions: [
+          IconButton(
+            tooltip: 'تاریخچه تغذیه',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => const NutritionHistoryScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.history),
+          ),
+        ],
+      ),
       body: AsyncSnapshotView(
         value: snapshot,
         builder: (data) {
@@ -28,6 +43,8 @@ class NutritionScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              const DailyCalorieTrackerCard(),
+              const SizedBox(height: 12),
               AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

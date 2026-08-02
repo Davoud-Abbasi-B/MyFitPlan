@@ -4,6 +4,7 @@ import '../../core/utils/date_utils.dart';
 import '../../features/checklist/models/daily_checklist_model.dart';
 import '../../features/craving/models/craving_log_model.dart';
 import '../../features/nutrition/models/meal_plan_model.dart';
+import '../../features/nutrition/models/daily_nutrition_model.dart';
 import '../../features/nutrition/models/nutrition_log_model.dart';
 import '../../features/progress/models/body_progress_model.dart';
 import '../../features/settings/models/user_profile_model.dart';
@@ -203,6 +204,60 @@ class LocalStorageService {
 
   Future<void> saveNutritionLog(NutritionLog nutritionLog) async {
     await _box.put(StorageKeys.nutritionLog, nutritionLog.toJson());
+  }
+
+  Future<List<DailyNutritionEntry>> loadDailyNutritionDraft(
+    String dateKey,
+  ) async {
+    final drafts = _mapValue(StorageKeys.dailyNutritionDrafts);
+    final rawEntries = drafts[dateKey];
+    if (rawEntries is! List) return const [];
+    return rawEntries
+        .whereType<Map>()
+        .map((entry) => DailyNutritionEntry.fromJson(
+              Map<String, dynamic>.from(entry),
+            ))
+        .toList(growable: false);
+  }
+
+  Future<void> saveDailyNutritionDraft(
+    String dateKey,
+    List<DailyNutritionEntry> entries,
+  ) async {
+    final drafts = _mapValue(StorageKeys.dailyNutritionDrafts);
+    drafts[dateKey] = entries.map((entry) => entry.toJson()).toList();
+    await _box.put(StorageKeys.dailyNutritionDrafts, drafts);
+  }
+
+  Future<List<DailyNutritionReport>> loadDailyNutritionReports() async {
+    final reports = _mapList(StorageKeys.dailyNutritionReports)
+        .map(DailyNutritionReport.fromJson)
+        .toList();
+    reports.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+    return reports;
+  }
+
+  Future<bool> saveDailyNutritionReport(
+    DailyNutritionReport report,
+  ) async {
+    final reports = await loadDailyNutritionReports();
+    if (!canSubmitNutritionReport(reports, report.dateKey)) return false;
+    reports.add(report);
+    reports.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+    await _box.put(
+      StorageKeys.dailyNutritionReports,
+      reports.map((item) => item.toJson()).toList(),
+    );
+    return true;
+  }
+
+  Future<void> deleteDailyNutritionReport(String dateKey) async {
+    final reports = await loadDailyNutritionReports();
+    reports.removeWhere((report) => report.dateKey == dateKey);
+    await _box.put(
+      StorageKeys.dailyNutritionReports,
+      reports.map((item) => item.toJson()).toList(),
+    );
   }
 
   Future<List<CravingLog>> loadCravingLogs() async {

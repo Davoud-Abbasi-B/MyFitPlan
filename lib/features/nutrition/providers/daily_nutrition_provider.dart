@@ -1,0 +1,163 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/providers/app_providers.dart';
+import '../models/daily_nutrition_model.dart';
+import '../models/food_analysis_result.dart';
+import '../services/food_analysis_service.dart';
+import '../services/mock_food_analysis_service.dart';
+
+final foodAnalysisServiceProvider = Provider<FoodAnalysisService>(
+  (ref) => const MockFoodAnalysisService(),
+);
+
+enum NutritionReportSubmissionResult { submitted, duplicate, empty }
+
+class DailyNutritionState {
+  const DailyNutritionState({
+    required this.dateKey,
+    required this.entries,
+    required this.dayType,
+    required this.isSubmitted,
+  });
+
+  final String dateKey;
+  final List<DailyNutritionEntry> entries;
+  final NutritionDayType dayType;
+  final bool isSubmitted;
+
+  DailyNutritionTotals get totals => DailyNutritionTotals.fromEntries(entries);
+
+  DailyNutritionState copyWith({
+    List<DailyNutritionEntry>? entries,
+    bool? isSubmitted,
+  }) {
+    return DailyNutritionState(
+      dateKey: dateKey,
+      entries: entries ?? this.entries,
+      dayType: dayType,
+      isSubmitted: isSubmitted ?? this.isSubmitted,
+    );
+  }
+}
+
+final dailyNutritionProvider =
+    AsyncNotifierProvider<DailyNutritionNotifier, DailyNutritionState>(
+  DailyNutritionNotifier.new,
+);
+
+class DailyNutritionNotifier extends AsyncNotifier<DailyNutritionState> {
+  bool _submissionInProgress = false;
+
+  @override
+  Future<DailyNutritionState> build() async {
+    final now = DateTime.now();
+    final dateKey = nutritionDateKey(now);
+    final storage = ref.watch(localStorageServiceProvider);
+    final entries = await storage.loadDailyNutritionDraft(dateKey);
+    final reports = await storage.loadDailyNutritionReports();
+    return DailyNutritionState(
+      dateKey: dateKey,
+      entries: entries,
+      dayType: nutritionDayTypeForDate(now),
+      isSubmitted: reports.any((report) => report.dateKey == dateKey),
+    );
+  }
+
+  Future<void> addAnalysis(FoodAnalysisResult result) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final entry = DailyNutritionEntry.fromAnalysis(
+      result: result,
+      dateKey: current.dateKey,
+    );
+    await _saveDraft(current.copyWith(entries: [...current.entries, entry]));
+  }
+
+  Future<void> deleteEntry(String entryId) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    await _saveDraft(
+      current.copyWith(
+        entries: current.entries
+            .where((entry) => entry.id != entryId)
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  Future<NutritionReportSubmissionResult> submitReport() async {
+    final current = state.valueOrNull;
+    if (current == null || current.entries.isEmpty) {
+      return NutritionReportSubmissionResult.empty;
+    }
+    if (current.isSubmitted) {
+      return NutritionReportSubmissionResult.duplicate;
+    }
+    if (_submissionInProgress) {
+      return NutritionReportSubmissionResult.duplicate;
+    }
+    _submissionInProgress = true;
+    final report = DailyNutritionReport.fromEntries(
+      dateKey: current.dateKey,
+      entries: current.entries,
+      dayType: current.dayType,
+    );
+    late final bool saved;
+    try {
+      saved = await ref
+          .read(localStorageServiceProvider)
+          .saveDailyNutritionReport(report);
+    } finally {
+      _submissionInProgress = false;
+    }
+    if (!saved) {
+      state = AsyncData(current.copyWith(isSubmitted: true));
+      return NutritionReportSubmissionResult.duplicate;
+    }
+    state = AsyncData(current.copyWith(isSubmitted: true));
+    ref.invalidate(nutritionReportHistoryProvider);
+    return NutritionReportSubmissionResult.submitted;
+  }
+
+  Future<void> _saveDraft(DailyNutritionState updated) async {
+    state = AsyncData(updated);
+    await ref
+        .read(localStorageServiceProvider)
+        .saveDailyNutritionDraft(updated.dateKey, updated.entries);
+  }
+}
+
+final nutritionReportHistoryProvider = AsyncNotifierProvider<
+    NutritionReportHistoryNotifier, List<DailyNutritionReport>>(
+  NutritionReportHistoryNotifier.new,
+);
+
+class NutritionReportHistoryNotifier
+    extends AsyncNotifier<List<DailyNutritionReport>> {
+  @override
+  Future<List<DailyNutritionReport>> build() {
+    return ref.watch(localStorageServiceProvider).loadDailyNutritionReports();
+  }
+
+  Future<void> deleteReport(String dateKey) async {
+    await ref
+        .read(localStorageServiceProvider)
+        .deleteDailyNutritionReport(dateKey);
+    state = AsyncData(
+      await ref.read(localStorageServiceProvider).loadDailyNutritionReports(),
+    );
+    final todayState = ref.read(dailyNutritionProvider).valueOrNull;
+    if (todayState?.dateKey == dateKey) ref.invalidate(dailyNutritionProvider);
+  }
+}
+
+NutritionDayType nutritionDayTypeForDate(DateTime date) {
+  return switch (date.weekday) {
+    DateTime.saturday ||
+    DateTime.sunday ||
+    DateTime.tuesday ||
+    DateTime.wednesday =>
+      NutritionDayType.training,
+    _ => NutritionDayType.rest,
+  };
+}

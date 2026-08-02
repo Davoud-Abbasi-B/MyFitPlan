@@ -11,6 +11,8 @@ abstract final class StorageKeys {
   static const workoutLogs = 'workout_logs';
   static const workoutSessions = 'workout_sessions';
   static const nutritionLog = 'nutrition_log';
+  static const dailyNutritionDrafts = 'daily_nutrition_drafts';
+  static const dailyNutritionReports = 'daily_nutrition_reports';
   static const cravingLogs = 'craving_logs';
   static const supplementLog = 'supplement_log';
   static const supplementReminderSettings = 'supplement_reminder_settings';
