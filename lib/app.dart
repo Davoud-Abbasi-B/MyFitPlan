@@ -10,7 +10,7 @@ class MyFitPlanApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'برنامه شخصی من',
+      title: 'Fitora',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       locale: const Locale('fa'),

@@ -1,4 +1,4 @@
-# my_fit_plan
+# Fitora
 
 A new Flutter project.
 

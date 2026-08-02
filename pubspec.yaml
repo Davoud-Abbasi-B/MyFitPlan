@@ -24,8 +24,42 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
   assets:
     - assets/exercises/
+  fonts:
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Vazirmatn-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Vazirmatn-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Vazirmatn-Bold.ttf
+          weight: 700
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/applogo/fitora.png
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/applogo/fitora.png
+  adaptive_icon_foreground_inset: 24
+  web:
+    generate: true
+    image_path: assets/applogo/fitora.png
+    background_color: "#FFFFFF"
+    theme_color: "#0F766E"
+  windows:
+    generate: true
+    image_path: assets/applogo/fitora.png
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: assets/applogo/fitora.png

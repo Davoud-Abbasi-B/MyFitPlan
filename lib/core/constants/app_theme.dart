@@ -8,7 +8,7 @@ abstract final class AppTheme {
 
     final base = ThemeData(
       useMaterial3: true,
-      fontFamily: 'sans-serif',
+      fontFamily: 'Vazirmatn',
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.light,
