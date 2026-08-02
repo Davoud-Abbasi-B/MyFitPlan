@@ -9,7 +9,7 @@ class MockFoodAnalysisService implements FoodAnalysisService {
   final Duration analysisDelay;
 
   @override
-  Future<FoodAnalysisResult> analyze(String input) async {
+  Future<FoodAnalysisBatchResult> analyze(String input) async {
     if (analysisDelay > Duration.zero) {
       await Future<void>.delayed(analysisDelay);
     }
@@ -28,7 +28,7 @@ class MockFoodAnalysisService implements FoodAnalysisService {
     if (amount <= 0) throw const FoodNotRecognizedException();
     final multiplier = amount / food.baseAmount;
 
-    return FoodAnalysisResult(
+    final result = FoodAnalysisResult(
       originalInput: input.trim(),
       foodName: food.name,
       quantityText: food.quantityLabel(amount),
@@ -37,6 +37,15 @@ class MockFoodAnalysisService implements FoodAnalysisService {
       carbsGrams: _round(food.carbs * multiplier),
       fatGrams: _round(food.fat * multiplier),
       isEstimated: true,
+      confidence: 'medium',
+      assumptions: const [
+        'مقدار و روش آماده‌سازی به‌صورت تقریبی در نظر گرفته شده است.'
+      ],
+    );
+    return FoodAnalysisBatchResult(
+      originalInput: input.trim(),
+      items: [result],
+      warnings: const ['این محاسبه با داده‌های آزمایشی محلی انجام شده است.'],
     );
   }
 }

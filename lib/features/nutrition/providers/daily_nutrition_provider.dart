@@ -4,11 +4,45 @@ import '../../../core/providers/app_providers.dart';
 import '../models/daily_nutrition_model.dart';
 import '../models/food_analysis_result.dart';
 import '../services/food_analysis_service.dart';
+import '../services/direct_openai_food_analysis_service.dart';
 import '../services/mock_food_analysis_service.dart';
 
-final foodAnalysisServiceProvider = Provider<FoodAnalysisService>(
-  (ref) => const MockFoodAnalysisService(),
+const openAiApiKey = String.fromEnvironment('OPENAI_API_KEY');
+const openAiModel = String.fromEnvironment(
+  'OPENAI_MODEL',
+  defaultValue: 'gpt-5-mini',
 );
+const isDirectOpenAiFoodAnalysisEnabled = openAiApiKey != '';
+
+final foodAnalysisServiceProvider = Provider<FoodAnalysisService>(
+  (ref) => createFoodAnalysisService(
+    apiKey: openAiApiKey,
+    model: openAiModel,
+  ),
+);
+
+FoodAnalysisService createFoodAnalysisService({
+  required String apiKey,
+  String model = 'gpt-5-mini',
+  FoodAnalysisHttpTransport transport = const IoFoodAnalysisHttpTransport(),
+}) {
+  if (apiKey.trim().isEmpty) return const MockFoodAnalysisService();
+  return DirectOpenAiFoodAnalysisService(
+    apiKey: apiKey,
+    model: model,
+    transport: transport,
+  );
+}
+
+class FoodConfirmationGuard {
+  bool _confirmed = false;
+
+  bool tryConfirm() {
+    if (_confirmed) return false;
+    _confirmed = true;
+    return true;
+  }
+}
 
 enum NutritionReportSubmissionResult { submitted, duplicate, empty }
 
@@ -64,13 +98,19 @@ class DailyNutritionNotifier extends AsyncNotifier<DailyNutritionState> {
   }
 
   Future<void> addAnalysis(FoodAnalysisResult result) async {
+    await addAnalyses([result]);
+  }
+
+  Future<void> addAnalyses(List<FoodAnalysisResult> results) async {
     final current = state.valueOrNull;
-    if (current == null) return;
-    final entry = DailyNutritionEntry.fromAnalysis(
-      result: result,
+    if (current == null || results.isEmpty) return;
+    final entries = dailyNutritionEntriesFromAnalyses(
+      results,
       dateKey: current.dateKey,
     );
-    await _saveDraft(current.copyWith(entries: [...current.entries, entry]));
+    await _saveDraft(
+      current.copyWith(entries: [...current.entries, ...entries]),
+    );
   }
 
   Future<void> deleteEntry(String entryId) async {
@@ -125,6 +165,23 @@ class DailyNutritionNotifier extends AsyncNotifier<DailyNutritionState> {
         .read(localStorageServiceProvider)
         .saveDailyNutritionDraft(updated.dateKey, updated.entries);
   }
+}
+
+List<DailyNutritionEntry> dailyNutritionEntriesFromAnalyses(
+  List<FoodAnalysisResult> results, {
+  required String dateKey,
+  DateTime? createdAt,
+}) {
+  final timestamp = createdAt ?? DateTime.now();
+  return results.indexed
+      .map(
+        (indexed) => DailyNutritionEntry.fromAnalysis(
+          result: indexed.$2,
+          dateKey: dateKey,
+          createdAt: timestamp.add(Duration(microseconds: indexed.$1)),
+        ),
+      )
+      .toList(growable: false);
 }
 
 final nutritionReportHistoryProvider = AsyncNotifierProvider<

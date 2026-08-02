@@ -15,6 +15,8 @@ class DailyNutritionEntry {
     required this.carbsGrams,
     required this.fatGrams,
     required this.isEstimated,
+    this.confidence = 'medium',
+    this.assumptions = const [],
   });
 
   final String id;
@@ -28,6 +30,8 @@ class DailyNutritionEntry {
   final double carbsGrams;
   final double fatGrams;
   final bool isEstimated;
+  final String confidence;
+  final List<String> assumptions;
 
   factory DailyNutritionEntry.fromAnalysis({
     required FoodAnalysisResult result,
@@ -47,6 +51,8 @@ class DailyNutritionEntry {
       carbsGrams: result.carbsGrams,
       fatGrams: result.fatGrams,
       isEstimated: result.isEstimated,
+      confidence: result.confidence,
+      assumptions: result.assumptions,
     );
   }
 
@@ -62,6 +68,8 @@ class DailyNutritionEntry {
         'carbsGrams': carbsGrams,
         'fatGrams': fatGrams,
         'isEstimated': isEstimated,
+        'confidence': confidence,
+        'assumptions': assumptions,
       };
 
   factory DailyNutritionEntry.fromJson(Map<String, dynamic> json) {
@@ -78,6 +86,10 @@ class DailyNutritionEntry {
       carbsGrams: (json['carbsGrams'] as num?)?.toDouble() ?? 0,
       fatGrams: (json['fatGrams'] as num?)?.toDouble() ?? 0,
       isEstimated: json['isEstimated'] as bool? ?? true,
+      confidence: json['confidence'] as String? ?? 'medium',
+      assumptions: (json['assumptions'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
     );
   }
 }

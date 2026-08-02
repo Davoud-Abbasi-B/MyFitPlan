@@ -21,8 +21,10 @@ class _DailyCalorieTrackerCardState
     extends ConsumerState<DailyCalorieTrackerCard> {
   final _inputController = TextEditingController();
   final _inputFocusNode = FocusNode();
-  FoodAnalysisResult? _preview;
+  FoodAnalysisBatchResult? _preview;
+  FoodConfirmationGuard _confirmationGuard = FoodConfirmationGuard();
   bool _isAnalyzing = false;
+  bool _isAddingPreview = false;
   String? _inputError;
 
   @override
@@ -42,6 +44,7 @@ class _DailyCalorieTrackerCardState
       _isAnalyzing = true;
       _inputError = null;
       _preview = null;
+      _confirmationGuard = FoodConfirmationGuard();
     });
     try {
       final result = await ref.read(foodAnalysisServiceProvider).analyze(input);
@@ -52,9 +55,12 @@ class _DailyCalorieTrackerCardState
       setState(() {
         _inputError = 'این خوراکی در نسخه فعلی قابل محاسبه نیست.';
       });
-    } catch (_) {
+    } on FoodAnalysisException catch (error) {
       if (!mounted) return;
-      setState(() => _inputError = 'محاسبه انجام نشد؛ دوباره تلاش کنید.');
+      setState(() => _inputError = foodAnalysisErrorMessage(error));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _inputError = foodAnalysisErrorMessage(error));
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
     }
@@ -62,17 +68,28 @@ class _DailyCalorieTrackerCardState
 
   Future<void> _addPreview() async {
     final preview = _preview;
-    if (preview == null) return;
-    await ref.read(dailyNutritionProvider.notifier).addAnalysis(preview);
-    if (!mounted) return;
-    setState(() {
-      _preview = null;
-      _inputError = null;
-      _inputController.clear();
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('خوراکی به فهرست امروز افزوده شد.')),
-    );
+    if (preview == null ||
+        _isAddingPreview ||
+        !_confirmationGuard.tryConfirm()) {
+      return;
+    }
+    setState(() => _isAddingPreview = true);
+    try {
+      await ref
+          .read(dailyNutritionProvider.notifier)
+          .addAnalyses(preview.items);
+      if (!mounted) return;
+      setState(() {
+        _preview = null;
+        _inputError = null;
+        _inputController.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('خوراکی‌ها به فهرست امروز افزوده شدند.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isAddingPreview = false);
+    }
   }
 
   void _editInput() {
@@ -133,7 +150,7 @@ class _DailyCalorieTrackerCardState
         TextField(
           controller: _inputController,
           focusNode: _inputFocusNode,
-          enabled: !_isAnalyzing,
+          enabled: !_isAnalyzing && !_isAddingPreview,
           minLines: 1,
           maxLines: 2,
           textInputAction: TextInputAction.done,
@@ -148,23 +165,40 @@ class _DailyCalorieTrackerCardState
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: _isAnalyzing ? null : _analyze,
+            onPressed: _isAnalyzing || _isAddingPreview ? null : _analyze,
             icon: _isAnalyzing
                 ? const SizedBox.square(
                     dimension: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.auto_awesome_outlined),
-            label: const Text('محاسبه'),
+            label: Text(_isAnalyzing ? 'در حال محاسبه...' : 'محاسبه'),
           ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          isDirectOpenAiFoodAnalysisEnabled
+              ? 'محاسبه هوشمند فعال است'
+              : 'حالت آزمایشی محلی فعال است',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+        ),
+        Text(
+          'کالری و درشت‌مغذی‌ها تقریبی هستند و ممکن است با نوع ماده غذایی، برند و روش پخت متفاوت باشند.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
         ),
         if (_preview != null) ...[
           const SizedBox(height: 12),
           _AnalysisPreview(
-            result: _preview!,
+            batch: _preview!,
+            isAdding: _isAddingPreview,
             onAdd: _addPreview,
             onEdit: _editInput,
-            onCancel: () => setState(() => _preview = null),
+            onCancel:
+                _isAddingPreview ? null : () => setState(() => _preview = null),
           ),
         ],
         if (daily.entries.isNotEmpty) ...[
@@ -324,16 +358,18 @@ class _DailySummary extends StatelessWidget {
 
 class _AnalysisPreview extends StatelessWidget {
   const _AnalysisPreview({
-    required this.result,
+    required this.batch,
+    required this.isAdding,
     required this.onAdd,
     required this.onEdit,
     required this.onCancel,
   });
 
-  final FoodAnalysisResult result;
+  final FoodAnalysisBatchResult batch;
+  final bool isAdding;
   final VoidCallback onAdd;
   final VoidCallback onEdit;
-  final VoidCallback onCancel;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -346,43 +382,103 @@ class _AnalysisPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  result.foodName,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+          Text(
+            'پیش‌نمایش محاسبه',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
-              ),
-              const Text(
-                'مقدار تقریبی',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            ],
           ),
           const SizedBox(height: 6),
-          Text('مقدار: ${result.quantityText}'),
-          Text('کالری: ${_number(result.calories)}'),
-          Text('پروتئین: ${_number(result.proteinGrams)} گرم'),
-          Text('کربوهیدرات: ${_number(result.carbsGrams)} گرم'),
-          Text('چربی: ${_number(result.fatGrams)} گرم'),
+          ...batch.items.indexed.map(
+            (indexed) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _AnalysisItem(
+                index: indexed.$1 + 1,
+                result: indexed.$2,
+              ),
+            ),
+          ),
+          const Divider(),
+          Text(
+            'جمع: ${_number(batch.totals.calories)} کالری | '
+            'پروتئین ${_number(batch.totals.proteinGrams)} | '
+            'کربوهیدرات ${_number(batch.totals.carbsGrams)} | '
+            'چربی ${_number(batch.totals.fatGrams)} گرم',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          if (batch.warnings.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...batch.warnings.map(
+              (warning) => Text(
+                'هشدار: $warning',
+                style: const TextStyle(color: AppColors.warning),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
               FilledButton(
-                onPressed: onAdd,
-                child: const Text('افزودن به امروز'),
+                onPressed: isAdding ? null : onAdd,
+                child:
+                    Text(isAdding ? 'در حال افزودن...' : 'افزودن همه به امروز'),
               ),
-              TextButton(onPressed: onEdit, child: const Text('ویرایش متن')),
+              TextButton(
+                onPressed: isAdding ? null : onEdit,
+                child: const Text('ویرایش متن'),
+              ),
               TextButton(onPressed: onCancel, child: const Text('لغو')),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AnalysisItem extends StatelessWidget {
+  const _AnalysisItem({required this.index, required this.result});
+
+  final int index;
+  final FoodAnalysisResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final confidence = switch (result.confidence) {
+      'high' => 'زیاد',
+      'low' => 'کم',
+      _ => 'متوسط',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${_integer(index)}. ${result.foodName} • ${result.quantityText}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        Text(
+          '${_number(result.calories)} کالری | '
+          'پروتئین ${_number(result.proteinGrams)} | '
+          'کربوهیدرات ${_number(result.carbsGrams)} | '
+          'چربی ${_number(result.fatGrams)} گرم',
+        ),
+        Text(
+          'اطمینان: $confidence',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+        ),
+        ...result.assumptions.map(
+          (assumption) => Text(
+            'فرض: $assumption',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
+        ),
+      ],
     );
   }
 }
