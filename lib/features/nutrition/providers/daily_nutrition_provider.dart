@@ -4,35 +4,41 @@ import '../../../core/providers/app_providers.dart';
 import '../models/daily_nutrition_model.dart';
 import '../models/food_analysis_result.dart';
 import '../services/food_analysis_service.dart';
-import '../services/direct_openai_food_analysis_service.dart';
-import '../services/mock_food_analysis_service.dart';
+import '../services/food_search_cache_service.dart';
+import '../services/hybrid_food_analysis_service.dart';
+import '../services/local_food_database_service.dart';
+import '../services/persian_food_parser.dart';
+import '../services/usda_food_data_service.dart';
 
-const openAiApiKey = String.fromEnvironment('OPENAI_API_KEY');
-const openAiModel = String.fromEnvironment(
-  'OPENAI_MODEL',
-  defaultValue: 'gpt-5-mini',
-);
-const isDirectOpenAiFoodAnalysisEnabled = openAiApiKey != '';
+const usdaApiKey = String.fromEnvironment('USDA_API_KEY');
+const isUsdaFoodSearchEnabled = usdaApiKey != '';
 
-final foodAnalysisServiceProvider = Provider<FoodAnalysisService>(
-  (ref) => createFoodAnalysisService(
-    apiKey: openAiApiKey,
-    model: openAiModel,
+final localFoodDatabaseProvider = Provider<LocalFoodDatabaseService>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  return LocalFoodDatabaseService(customFoodLoader: storage.loadCustomFoods);
+});
+
+final foodSearchCacheProvider = Provider<FoodSearchCacheService>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  return CallbackFoodSearchCacheService(
+    loader: storage.loadUsdaFoodSearchCache,
+    saver: storage.saveUsdaFoodSearchCache,
+    clearer: storage.clearUsdaFoodSearchCache,
+  );
+});
+
+final hybridFoodAnalysisServiceProvider = Provider<HybridFoodAnalysisService>(
+  (ref) => HybridFoodAnalysisService(
+    parser: const PersianFoodParser(),
+    localDatabase: ref.watch(localFoodDatabaseProvider),
+    usda: const UsdaFoodDataService(apiKey: usdaApiKey),
+    cache: ref.watch(foodSearchCacheProvider),
   ),
 );
 
-FoodAnalysisService createFoodAnalysisService({
-  required String apiKey,
-  String model = 'gpt-5-mini',
-  FoodAnalysisHttpTransport transport = const IoFoodAnalysisHttpTransport(),
-}) {
-  if (apiKey.trim().isEmpty) return const MockFoodAnalysisService();
-  return DirectOpenAiFoodAnalysisService(
-    apiKey: apiKey,
-    model: model,
-    transport: transport,
-  );
-}
+final foodAnalysisServiceProvider = Provider<FoodAnalysisService>(
+  (ref) => ref.watch(hybridFoodAnalysisServiceProvider),
+);
 
 class FoodConfirmationGuard {
   bool _confirmed = false;

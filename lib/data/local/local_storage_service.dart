@@ -6,6 +6,7 @@ import '../../features/craving/models/craving_log_model.dart';
 import '../../features/nutrition/models/meal_plan_model.dart';
 import '../../features/nutrition/models/daily_nutrition_model.dart';
 import '../../features/nutrition/models/nutrition_log_model.dart';
+import '../../features/nutrition/services/local_food_database_service.dart';
 import '../../features/progress/models/body_progress_model.dart';
 import '../../features/settings/models/user_profile_model.dart';
 import '../../features/supplements/models/supplement_log_model.dart';
@@ -257,6 +258,36 @@ class LocalStorageService {
     await _box.put(
       StorageKeys.dailyNutritionReports,
       reports.map((item) => item.toJson()).toList(),
+    );
+  }
+
+  Future<Map<String, dynamic>> loadUsdaFoodSearchCache() async =>
+      _mapValue(StorageKeys.usdaFoodSearchCache);
+
+  Future<void> saveUsdaFoodSearchCache(Map<String, dynamic> cache) async {
+    await _box.put(StorageKeys.usdaFoodSearchCache, cache);
+  }
+
+  Future<void> clearUsdaFoodSearchCache() async {
+    await _box.delete(StorageKeys.usdaFoodSearchCache);
+  }
+
+  Future<List<LocalFoodDefinition>> loadCustomFoods() async {
+    return _mapList(StorageKeys.customFoods)
+        .map(LocalFoodDefinition.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<void> saveCustomFood(LocalFoodDefinition food) async {
+    final foods = await loadCustomFoods();
+    foods.removeWhere(
+      (item) =>
+          item.nameFa.trim().toLowerCase() == food.nameFa.trim().toLowerCase(),
+    );
+    foods.insert(0, food);
+    await _box.put(
+      StorageKeys.customFoods,
+      foods.map((item) => item.toJson()).toList(),
     );
   }
 

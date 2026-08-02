@@ -15,6 +15,7 @@ enum FoodAnalysisErrorType {
   badRequest,
   unavailable,
   malformed,
+  noResults,
   unknown,
 }
 
@@ -30,13 +31,16 @@ String foodAnalysisErrorMessage(Object error) {
       : FoodAnalysisErrorType.unknown;
   return switch (type) {
     FoodAnalysisErrorType.network =>
-      'ارتباط با سرویس محاسبه برقرار نشد. دوباره تلاش کنید.',
-    FoodAnalysisErrorType.unauthorized => 'کلید سرویس معتبر نیست.',
+      'ارتباط با پایگاه اطلاعات غذایی برقرار نشد.',
+    FoodAnalysisErrorType.unauthorized =>
+      'کلید پایگاه اطلاعات غذایی معتبر نیست.',
     FoodAnalysisErrorType.rateLimited =>
-      'تعداد درخواست‌ها زیاد بوده یا اعتبار حساب کافی نیست. کمی بعد دوباره تلاش کنید.',
+      'تعداد جست‌وجوها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.',
     FoodAnalysisErrorType.badRequest => 'درخواست محاسبه معتبر نبود.',
     FoodAnalysisErrorType.unavailable => 'سرویس محاسبه موقتاً در دسترس نیست.',
-    FoodAnalysisErrorType.malformed => 'پاسخ سرویس قابل پردازش نبود.',
-    FoodAnalysisErrorType.unknown => 'در محاسبه اطلاعات غذایی خطایی رخ داد.',
+    FoodAnalysisErrorType.malformed =>
+      'اطلاعات دریافتی از پایگاه غذایی قابل پردازش نبود.',
+    FoodAnalysisErrorType.noResults => 'خوراکی مشابهی در پایگاه USDA پیدا نشد.',
+    FoodAnalysisErrorType.unknown => 'در جست‌وجوی اطلاعات غذایی خطایی رخ داد.',
   };
 }

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/app_card.dart';
 import '../models/daily_nutrition_model.dart';
 import '../models/food_analysis_result.dart';
 import '../providers/daily_nutrition_provider.dart';
 import '../services/food_analysis_service.dart';
+import '../services/local_food_database_service.dart';
+import '../services/persian_food_parser.dart';
 
 class DailyCalorieTrackerCard extends ConsumerStatefulWidget {
   const DailyCalorieTrackerCard({super.key});
@@ -49,7 +52,15 @@ class _DailyCalorieTrackerCardState
     try {
       final result = await ref.read(foodAnalysisServiceProvider).analyze(input);
       if (!mounted) return;
-      setState(() => _preview = result);
+      final resolved = await _resolveBatch(result);
+      if (!mounted) return;
+      setState(() {
+        _preview = resolved;
+        if (resolved.needsUserAction) {
+          _inputError =
+              'برای موارد حل‌نشده، مقدار یا خوراکی مناسب را مشخص کنید.';
+        }
+      });
     } on FoodNotRecognizedException {
       if (!mounted) return;
       setState(() {
@@ -64,6 +75,308 @@ class _DailyCalorieTrackerCardState
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
     }
+  }
+
+  Future<FoodAnalysisBatchResult> _resolveBatch(
+    FoodAnalysisBatchResult batch,
+  ) async {
+    final items = [...batch.items];
+    final remaining = <UnresolvedFoodItem>[];
+    final hybrid = ref.read(hybridFoodAnalysisServiceProvider);
+    for (final unresolved in batch.unresolvedItems) {
+      FoodAnalysisResult? result;
+      if (unresolved.candidates.isNotEmpty) {
+        final choice = await _showCandidateSheet(unresolved);
+        if (!mounted) return batch;
+        if (choice.candidate != null) {
+          result = await hybrid.resolveCandidate(
+            unresolved,
+            choice.candidate!,
+          );
+          result ??= await _showManualEntry(unresolved);
+        } else if (choice.action == _CandidateAction.manual) {
+          result = await _showManualEntry(unresolved);
+        } else if (choice.action == _CandidateAction.retry) {
+          _inputController.text = unresolved.originalSegment;
+          _inputFocusNode.requestFocus();
+        }
+      } else {
+        result = await _showManualEntry(unresolved);
+      }
+      if (result != null) {
+        items.add(result);
+      } else {
+        remaining.add(unresolved);
+      }
+    }
+    return FoodAnalysisBatchResult(
+      originalInput: batch.originalInput,
+      items: items,
+      unresolvedItems: remaining,
+      warnings: batch.warnings,
+    );
+  }
+
+  Future<_CandidateSheetResult> _showCandidateSheet(
+    UnresolvedFoodItem unresolved,
+  ) async {
+    return await showModalBottomSheet<_CandidateSheetResult>(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          builder: (context) => SafeArea(
+            top: false,
+            child: FractionallySizedBox(
+              heightFactor: 0.88,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    child: Text(
+                      'انتخاب خوراکی مشابه',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: Text(
+                      'برای «${unresolved.foodName}»',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: unresolved.candidates.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final candidate = unresolved.candidates[index];
+                        return _UsdaCandidateCard(
+                          candidate: candidate,
+                          onSelect: () => Navigator.pop(
+                            context,
+                            _CandidateSheetResult(candidate: candidate),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        OutlinedButton(
+                          onPressed: () => Navigator.pop(
+                            context,
+                            const _CandidateSheetResult(
+                              action: _CandidateAction.retry,
+                            ),
+                          ),
+                          child: const Text('جست‌وجوی دوباره'),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => Navigator.pop(
+                            context,
+                            const _CandidateSheetResult(
+                              action: _CandidateAction.manual,
+                            ),
+                          ),
+                          child: const Text('ورود دستی'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('لغو'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ) ??
+        const _CandidateSheetResult(action: _CandidateAction.cancel);
+  }
+
+  Future<FoodAnalysisResult?> _showManualEntry(
+    UnresolvedFoodItem unresolved,
+  ) async {
+    final nameController = TextEditingController(text: unresolved.foodName);
+    final quantityController = TextEditingController(
+      text: unresolved.quantity?.toString() ?? '',
+    );
+    final caloriesController = TextEditingController();
+    final proteinController = TextEditingController();
+    final carbsController = TextEditingController();
+    final fatController = TextEditingController();
+    var unit = FoodUnit.values.firstWhere(
+      (item) => item.name == unresolved.unit,
+      orElse: () => FoodUnit.gram,
+    );
+    if (unit == FoodUnit.unsupported) unit = FoodUnit.gram;
+    var saveCustom = false;
+
+    final result = await showDialog<FoodAnalysisResult>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('ورود دستی خوراکی'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                    'مقادیر غذایی را برای همین مقدار مصرف‌شده وارد کنید.'),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'نام خوراکی'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: quantityController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration:
+                            const InputDecoration(labelText: 'مقدار مصرف'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonFormField<FoodUnit>(
+                        initialValue: unit,
+                        decoration: const InputDecoration(labelText: 'واحد'),
+                        items: FoodUnit.values
+                            .where((item) => item != FoodUnit.unsupported)
+                            .map((item) => DropdownMenuItem(
+                                  value: item,
+                                  child: Text(item.label),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => unit = value);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _ManualMacroField(
+                    controller: caloriesController, label: 'کالری'),
+                _ManualMacroField(
+                    controller: proteinController, label: 'پروتئین'),
+                _ManualMacroField(
+                    controller: carbsController, label: 'کربوهیدرات'),
+                _ManualMacroField(controller: fatController, label: 'چربی'),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: saveCustom,
+                  onChanged: (value) =>
+                      setDialogState(() => saveCustom = value ?? false),
+                  title: const Text('ذخیره در خوراکی‌های من'),
+                  subtitle: const Text(
+                    'ذخیره خودکار فقط برای مقدار گرم یا کیلوگرم انجام می‌شود.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('لغو'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                double? parseNumber(TextEditingController controller) =>
+                    double.tryParse(normalizePersianText(controller.text));
+                final quantity = parseNumber(quantityController);
+                final calories = parseNumber(caloriesController);
+                final protein = parseNumber(proteinController);
+                final carbs = parseNumber(carbsController);
+                final fat = parseNumber(fatController);
+                final name = nameController.text.trim();
+                if (quantity == null ||
+                    quantity <= 0 ||
+                    calories == null ||
+                    protein == null ||
+                    carbs == null ||
+                    fat == null ||
+                    name.isEmpty) {
+                  return;
+                }
+                final grams = unit == FoodUnit.gram
+                    ? quantity
+                    : unit == FoodUnit.kilogram
+                        ? quantity * 1000
+                        : null;
+                if (saveCustom && grams != null) {
+                  final multiplier = 100 / grams;
+                  await ref.read(localStorageServiceProvider).saveCustomFood(
+                        LocalFoodDefinition(
+                          id: 'custom-${DateTime.now().microsecondsSinceEpoch}',
+                          nameFa: name,
+                          aliasesFa: const [],
+                          searchTermsEn: const [],
+                          basisAmount: 100,
+                          calories: calories * multiplier,
+                          proteinGrams: protein * multiplier,
+                          carbsGrams: carbs * multiplier,
+                          fatGrams: fat * multiplier,
+                          source: 'user_custom',
+                          defaultGramConversions: const {},
+                          isCustom: true,
+                        ),
+                      );
+                  ref.read(localFoodDatabaseProvider).invalidateCustomFoods();
+                }
+                if (!context.mounted) return;
+                Navigator.pop(
+                  context,
+                  FoodAnalysisResult(
+                    originalInput: unresolved.originalSegment,
+                    foodName: name,
+                    quantityText: '${_number(quantity)} ${unit.label}',
+                    consumedGrams: grams,
+                    calories: calories,
+                    proteinGrams: protein,
+                    carbsGrams: carbs,
+                    fatGrams: fat,
+                    isEstimated: true,
+                    confidence: 'high',
+                    assumptions: const ['مقادیر توسط کاربر وارد شده‌اند.'],
+                    sourceType: FoodSourceType.manual,
+                    sourceLabel: 'ورود دستی',
+                  ),
+                );
+              },
+              child: const Text('ثبت'),
+            ),
+          ],
+        ),
+      ),
+    );
+    nameController.dispose();
+    quantityController.dispose();
+    caloriesController.dispose();
+    proteinController.dispose();
+    carbsController.dispose();
+    fatController.dispose();
+    return result;
   }
 
   Future<void> _addPreview() async {
@@ -177,15 +490,15 @@ class _DailyCalorieTrackerCardState
         ),
         const SizedBox(height: 8),
         Text(
-          isDirectOpenAiFoodAnalysisEnabled
-              ? 'محاسبه هوشمند فعال است'
-              : 'حالت آزمایشی محلی فعال است',
+          isUsdaFoodSearchEnabled
+              ? 'پایگاه غذایی آنلاین فعال است'
+              : 'فقط پایگاه غذایی داخلی فعال است',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),
         ),
         Text(
-          'کالری و درشت‌مغذی‌ها تقریبی هستند و ممکن است با نوع ماده غذایی، برند و روش پخت متفاوت باشند.',
+          'مقادیر غذایی تقریبی هستند و ممکن است با برند، دستور پخت و اندازه واقعی وعده متفاوت باشند.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -290,6 +603,81 @@ class _DailyCalorieTrackerCardState
     };
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+enum _CandidateAction { select, retry, manual, cancel }
+
+class _CandidateSheetResult {
+  const _CandidateSheetResult({
+    this.candidate,
+    this.action = _CandidateAction.select,
+  });
+  final FoodAnalysisCandidate? candidate;
+  final _CandidateAction action;
+}
+
+class _UsdaCandidateCard extends StatelessWidget {
+  const _UsdaCandidateCard({
+    required this.candidate,
+    required this.onSelect,
+  });
+
+  final FoodAnalysisCandidate candidate;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            candidate.description,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          Text(
+            '${candidate.dataType}'
+            '${candidate.brandOwner == null ? '' : ' • ${candidate.brandOwner}'}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${_number(candidate.caloriesPer100g)} کالری در ۱۰۰ گرم | '
+            'پروتئین ${_number(candidate.proteinPer100g)} | '
+            'کربوهیدرات ${_number(candidate.carbsPer100g)} | '
+            'چربی ${_number(candidate.fatPer100g)}',
+          ),
+          const SizedBox(height: 8),
+          FilledButton(onPressed: onSelect, child: const Text('انتخاب')),
+        ],
+      ),
+    );
+  }
+}
+
+class _ManualMacroField extends StatelessWidget {
+  const _ManualMacroField({required this.controller, required this.label});
+  final TextEditingController controller;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(labelText: '$label برای مقدار مصرف‌شده'),
+      ),
+    );
   }
 }
 
@@ -398,6 +786,15 @@ class _AnalysisPreview extends StatelessWidget {
               ),
             ),
           ),
+          if (batch.unresolvedItems.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...batch.unresolvedItems.map(
+              (item) => Text(
+                '${item.foodName}: ${item.reason}',
+                style: const TextStyle(color: AppColors.warning),
+              ),
+            ),
+          ],
           const Divider(),
           Text(
             'جمع: ${_number(batch.totals.calories)} کالری | '
@@ -421,7 +818,7 @@ class _AnalysisPreview extends StatelessWidget {
             runSpacing: 6,
             children: [
               FilledButton(
-                onPressed: isAdding ? null : onAdd,
+                onPressed: isAdding || batch.needsUserAction ? null : onAdd,
                 child:
                     Text(isAdding ? 'در حال افزودن...' : 'افزودن همه به امروز'),
               ),
@@ -470,11 +867,25 @@ class _AnalysisItem extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
         ),
+        Text(
+          'منبع: ${result.sourceLabel}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+        ),
         ...result.assumptions.map(
           (assumption) => Text(
             'فرض: $assumption',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
+                ),
+          ),
+        ),
+        ...result.warnings.map(
+          (warning) => Text(
+            'هشدار: $warning',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.warning,
                 ),
           ),
         ),

@@ -17,6 +17,11 @@ class DailyNutritionEntry {
     required this.isEstimated,
     this.confidence = 'medium',
     this.assumptions = const [],
+    this.warnings = const [],
+    this.consumedGrams,
+    this.sourceType = FoodSourceType.local,
+    this.sourceLabel = 'داده ذخیره‌شده',
+    this.fdcId,
   });
 
   final String id;
@@ -32,6 +37,11 @@ class DailyNutritionEntry {
   final bool isEstimated;
   final String confidence;
   final List<String> assumptions;
+  final List<String> warnings;
+  final double? consumedGrams;
+  final FoodSourceType sourceType;
+  final String sourceLabel;
+  final int? fdcId;
 
   factory DailyNutritionEntry.fromAnalysis({
     required FoodAnalysisResult result,
@@ -53,6 +63,11 @@ class DailyNutritionEntry {
       isEstimated: result.isEstimated,
       confidence: result.confidence,
       assumptions: result.assumptions,
+      warnings: result.warnings,
+      consumedGrams: result.consumedGrams,
+      sourceType: result.sourceType,
+      sourceLabel: result.sourceLabel,
+      fdcId: result.fdcId,
     );
   }
 
@@ -70,6 +85,11 @@ class DailyNutritionEntry {
         'isEstimated': isEstimated,
         'confidence': confidence,
         'assumptions': assumptions,
+        'warnings': warnings,
+        'consumedGrams': consumedGrams,
+        'sourceType': sourceType.name,
+        'sourceLabel': sourceLabel,
+        'fdcId': fdcId,
       };
 
   factory DailyNutritionEntry.fromJson(Map<String, dynamic> json) {
@@ -90,6 +110,16 @@ class DailyNutritionEntry {
       assumptions: (json['assumptions'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(growable: false),
+      warnings: (json['warnings'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
+      consumedGrams: (json['consumedGrams'] as num?)?.toDouble(),
+      sourceType: FoodSourceType.values.firstWhere(
+        (value) => value.name == json['sourceType'],
+        orElse: () => FoodSourceType.local,
+      ),
+      sourceLabel: json['sourceLabel'] as String? ?? 'داده ذخیره‌شده',
+      fdcId: json['fdcId'] as int?,
     );
   }
 }
