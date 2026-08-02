@@ -13,6 +13,7 @@ import '../models/workout_day_model.dart';
 import '../models/workout_log_model.dart';
 import '../models/workout_session_model.dart';
 import '../providers/workout_provider.dart';
+import '../widgets/shared_workout_timer_card.dart';
 import 'workout_history_screen.dart';
 
 class WorkoutPlanScreen extends ConsumerWidget {
@@ -42,17 +43,20 @@ class WorkoutPlanScreen extends ConsumerWidget {
         builder: (data) {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: data.workouts.length + 2,
+            itemCount: data.workouts.length + 3,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               if (index == 0) {
-                return const _ProgramGuideCard();
+                return const SharedWorkoutTimerCard();
               }
               if (index == 1) {
+                return const _ProgramGuideCard();
+              }
+              if (index == 2) {
                 return const _VideoAbsGuideCard();
               }
 
-              return _WorkoutDayCard(workout: data.workouts[index - 2]);
+              return _WorkoutDayCard(workout: data.workouts[index - 3]);
             },
           );
         },
