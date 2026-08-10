@@ -272,6 +272,13 @@ class LocalStorageService {
     await _box.delete(StorageKeys.usdaFoodSearchCache);
   }
 
+  Future<Map<String, dynamic>> loadFoodTranslationCache() async =>
+      _mapValue(StorageKeys.foodTranslationCache);
+
+  Future<void> saveFoodTranslationCache(Map<String, dynamic> cache) async {
+    await _box.put(StorageKeys.foodTranslationCache, cache);
+  }
+
   Future<List<LocalFoodDefinition>> loadCustomFoods() async {
     return _mapList(StorageKeys.customFoods)
         .map(LocalFoodDefinition.fromJson)

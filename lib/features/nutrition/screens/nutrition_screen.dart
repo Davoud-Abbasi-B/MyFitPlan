@@ -13,7 +13,9 @@ import '../widgets/daily_calorie_tracker_card.dart';
 import 'nutrition_history_screen.dart';
 
 class NutritionScreen extends ConsumerWidget {
-  const NutritionScreen({super.key});
+  const NutritionScreen({super.key, this.isActive = false});
+
+  final bool isActive;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +45,7 @@ class NutritionScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const DailyCalorieTrackerCard(),
+              DailyCalorieTrackerCard(isActive: isActive),
               const SizedBox(height: 12),
               AppCard(
                 child: Column(
@@ -82,16 +84,18 @@ class NutritionScreen extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Text(
                           'پروتئین تقریبی: ${plan.totalProtein} گرم',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                         const SizedBox(height: 14),
                         ...plan.meals.map(
                           (meal) => _MealTile(
                             meal: meal,
-                            completed: nutritionLog?.isMealCompleted(meal.id) ?? false,
+                            completed:
+                                nutritionLog?.isMealCompleted(meal.id) ?? false,
                             onChanged: (value) {
                               ref
                                   .read(nutritionLogProvider.notifier)
@@ -237,7 +241,8 @@ class _MealTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final guidanceTitle = _guidanceTitleForMeal(meal.title);
-    final suggestions = _mealGuidance[guidanceTitle] ?? const <_MealSuggestion>[];
+    final suggestions =
+        _mealGuidance[guidanceTitle] ?? const <_MealSuggestion>[];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -323,18 +328,20 @@ Future<void> _showMealGuidanceSheet(
                       children: [
                         Text(
                           item.title,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                         const SizedBox(height: 6),
                         Text(item.portion),
                         const SizedBox(height: 4),
                         Text(
                           item.note,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                         ),
                       ],
                     ),
@@ -389,17 +396,20 @@ const _mealGuidance = <String, List<_MealSuggestion>>{
   'صبحانه': [
     _MealSuggestion(
       title: 'صبحانه',
-      portion: '۲ عدد تخم‌مرغ کامل + ۲ عدد سفیده + ۱ کف دست نان سنگک + خیار و گوجه',
+      portion:
+          '۲ عدد تخم‌مرغ کامل + ۲ عدد سفیده + ۱ کف دست نان سنگک + خیار و گوجه',
       note: 'پروتئین بالا و سیرکننده برای شروع روز.',
     ),
     _MealSuggestion(
       title: 'صبحانه',
-      portion: 'املت با ۲ عدد تخم‌مرغ کامل + ۲ سفیده + ۱ قاشق چای‌خوری روغن زیتون + ۱ کف دست نان',
+      portion:
+          'املت با ۲ عدد تخم‌مرغ کامل + ۲ سفیده + ۱ قاشق چای‌خوری روغن زیتون + ۱ کف دست نان',
       note: 'اگر صبح وقت کم داری گزینه ساده‌تری است.',
     ),
     _MealSuggestion(
       title: 'صبحانه',
-      portion: 'جو دوسر ۵۰ گرم + شیر کم‌چرب ۲۵۰ میلی‌لیتر + دارچین + ۱۰ عدد بادام',
+      portion:
+          'جو دوسر ۵۰ گرم + شیر کم‌چرب ۲۵۰ میلی‌لیتر + دارچین + ۱۰ عدد بادام',
       note: 'برای انرژی پایدار تا ظهر مناسب است.',
     ),
     _MealSuggestion(
@@ -455,7 +465,8 @@ const _mealGuidance = <String, List<_MealSuggestion>>{
   'ناهار': [
     _MealSuggestion(
       title: 'ناهار',
-      portion: 'مرغ پخته یا گریل ۱۵۰ تا ۲۰۰ گرم + برنج پخته ۶ تا ۸ قاشق غذاخوری + سالاد زیاد',
+      portion:
+          'مرغ پخته یا گریل ۱۵۰ تا ۲۰۰ گرم + برنج پخته ۶ تا ۸ قاشق غذاخوری + سالاد زیاد',
       note: 'انتخاب پایه و مطمئن برای روزهای تمرین.',
     ),
     _MealSuggestion(

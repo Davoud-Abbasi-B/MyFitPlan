@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_fit_plan/features/nutrition/models/food_analysis_result.dart';
 import 'package:my_fit_plan/features/nutrition/services/food_search_cache_service.dart';
+import 'package:my_fit_plan/features/nutrition/services/food_name_translation_service.dart';
 import 'package:my_fit_plan/features/nutrition/services/hybrid_food_analysis_service.dart';
 import 'package:my_fit_plan/features/nutrition/services/local_food_database_service.dart';
 import 'package:my_fit_plan/features/nutrition/services/persian_food_parser.dart';
@@ -82,6 +83,7 @@ void main() {
       localDatabase: LocalFoodDatabaseService(),
       usda: usda,
       cache: MemoryFoodSearchCacheService(),
+      translation: _FakeTranslationService('unused'),
     );
 
     final batch = await service.analyze('۱۴ عدد دلمه برگ مو');
@@ -121,6 +123,44 @@ void main() {
     expect(batch.items, isEmpty);
   });
 
+  test('local match skips translation and USDA', () async {
+    final translator = _FakeTranslationService('unused');
+    final usda = _FakeUsda([]);
+    final service = _service(usda: usda, translation: translator);
+
+    await service.analyze('۱۰۰ گرم نان بربری');
+
+    expect(translator.calls, 0);
+    expect(usda.calls, 0);
+  });
+
+  test('translated Persian food name is the USDA query', () async {
+    final translator = _FakeTranslationService('potato chips');
+    final usda = _FakeUsda([_candidate(10, 60)]);
+    final service = _service(usda: usda, translation: translator);
+
+    final batch = await service.analyze('۱۰۰ گرم چیپس سیب زمینی');
+
+    expect(translator.lastFoodName, 'چیپس سیب زمینی');
+    expect(usda.lastQuery, 'potato chips');
+    expect(batch.items.single.searchPhrase, 'potato chips');
+  });
+
+  test('failed translation does not call USDA and keeps manual fallback',
+      () async {
+    final translator = _FakeTranslationService('', available: false);
+    final usda = _FakeUsda([]);
+    final batch = await _service(usda: usda, translation: translator)
+        .analyze('۱۰۰ گرم خوراک ناشناخته');
+
+    expect(usda.calls, 0);
+    expect(
+      batch.unresolvedItems.single.status,
+      FoodResolutionStatus.translationUnavailable,
+    );
+    expect(batch.unresolvedItems.single.allowsManualEntry, isTrue);
+  });
+
   test('cache hit and selected candidate reuse avoid USDA search', () async {
     final cache = MemoryFoodSearchCacheService();
     final selected = _candidate(8, 60);
@@ -152,13 +192,17 @@ void main() {
 HybridFoodAnalysisService _service({
   UsdaFoodDataService? usda,
   FoodSearchCacheService? cache,
+  FoodNameTranslationService? translation,
 }) =>
     HybridFoodAnalysisService(
       parser: const PersianFoodParser(),
       localDatabase: _database(),
       usda: usda ?? const UsdaFoodDataService(apiKey: ''),
       cache: cache ?? MemoryFoodSearchCacheService(),
-      dictionary: const _TestDictionary(),
+      translation: translation ??
+          _FakeTranslationService(
+            'chicken breast cooked skinless',
+          ),
     );
 
 LocalFoodDatabaseService _database(
@@ -218,21 +262,53 @@ class _FakeUsda extends UsdaFoodDataService {
   _FakeUsda(this.results) : super(apiKey: 'test');
   final List<FoodAnalysisCandidate> results;
   int calls = 0;
+  String? lastQuery;
 
   @override
   Future<List<FoodAnalysisCandidate>> search(String query) async {
     calls++;
+    lastQuery = query;
     return results;
   }
 }
 
-class _TestDictionary extends PersianFoodSearchDictionary {
-  const _TestDictionary();
+class _FakeTranslationService implements FoodNameTranslationService {
+  _FakeTranslationService(this.englishText, {this.available = true});
+
+  final String englishText;
+  final bool available;
+  int calls = 0;
+  String? lastFoodName;
 
   @override
-  String? searchPhrase(String normalizedFoodName,
-          {LocalFoodDefinition? localDefinition}) =>
-      normalizedFoodName.contains('سینه مرغ')
-          ? 'chicken breast cooked skinless'
-          : null;
+  Future<FoodTranslationResult> translateFoodName(
+      String persianFoodName) async {
+    calls++;
+    lastFoodName = persianFoodName;
+    return FoodTranslationResult(
+      originalText: persianFoodName,
+      translatedText: englishText,
+      source: available
+          ? TranslationSource.onDeviceMlKit
+          : TranslationSource.unavailable,
+      isAvailable: available,
+      warning: available ? null : 'ترجمه نام خوراکی انجام نشد.',
+    );
+  }
+
+  @override
+  Future<OnDeviceTranslationAvailability> availability() async =>
+      const OnDeviceTranslationAvailability(
+        isSupported: true,
+        modelsReady: true,
+      );
+
+  @override
+  Future<void> ensureModelsDownloaded() async {}
+
+  @override
+  Future<void> saveUserOverride(
+    String persianFoodName,
+    String englishText,
+  ) async {}
 }

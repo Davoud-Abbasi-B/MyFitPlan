@@ -4,6 +4,7 @@ import '../../../core/providers/app_providers.dart';
 import '../models/daily_nutrition_model.dart';
 import '../models/food_analysis_result.dart';
 import '../services/food_analysis_service.dart';
+import '../services/food_name_translation_service.dart';
 import '../services/food_search_cache_service.dart';
 import '../services/hybrid_food_analysis_service.dart';
 import '../services/local_food_database_service.dart';
@@ -27,12 +28,92 @@ final foodSearchCacheProvider = Provider<FoodSearchCacheService>((ref) {
   );
 });
 
+class TranslationUiController extends Notifier<TranslationUiState> {
+  @override
+  TranslationUiState build() => const TranslationUiState();
+
+  void operationStarted({bool downloading = false}) {
+    state = state.copyWith(
+      status: downloading
+          ? TranslationModelStatus.downloading
+          : state.status == TranslationModelStatus.ready
+              ? TranslationModelStatus.ready
+              : TranslationModelStatus.unknown,
+      clearDiagnostic: true,
+    );
+  }
+
+  void applyServiceStatus(TranslationModelStatus status) {
+    state = state.copyWith(
+      status: status,
+      clearDiagnostic: status == TranslationModelStatus.downloading ||
+          status == TranslationModelStatus.ready,
+      translatorInitialized:
+          status == TranslationModelStatus.ready || state.translatorInitialized,
+    );
+  }
+
+  void failed(TranslationModelStatus status, String diagnostic) {
+    assert(status != TranslationModelStatus.ready);
+    state = TranslationUiState(
+      status: status,
+      diagnostic: diagnostic,
+      translatorInitialized: state.translatorInitialized,
+    );
+  }
+
+  void succeeded() {
+    state = const TranslationUiState(
+      status: TranslationModelStatus.ready,
+      translatorInitialized: true,
+    );
+  }
+
+  void screenOpened() {
+    if (state.status == TranslationModelStatus.downloading || state.isReady) {
+      state = state.copyWith(clearDiagnostic: true);
+      return;
+    }
+    state = const TranslationUiState();
+  }
+}
+
+final translationUiStateProvider =
+    NotifierProvider<TranslationUiController, TranslationUiState>(
+  TranslationUiController.new,
+);
+
+final translationModelStatusProvider = Provider<TranslationModelStatus>(
+  (ref) => ref.watch(translationUiStateProvider).status,
+);
+
+final foodTranslationCacheProvider = Provider<FoodTranslationCacheService>(
+  (ref) {
+    final storage = ref.watch(localStorageServiceProvider);
+    return CallbackFoodTranslationCacheService(
+      loader: storage.loadFoodTranslationCache,
+      saver: storage.saveFoodTranslationCache,
+    );
+  },
+);
+
+final foodNameTranslationServiceProvider = Provider<FoodNameTranslationService>(
+  (ref) => CachedFoodNameTranslationService(
+    cache: ref.watch(foodTranslationCacheProvider),
+    onDeviceTranslator: const MethodChannelFoodNameTranslator(),
+    onStatusChanged: (status) {
+      ref.read(translationUiStateProvider.notifier).applyServiceStatus(status);
+    },
+  ),
+);
+
 final hybridFoodAnalysisServiceProvider = Provider<HybridFoodAnalysisService>(
   (ref) => HybridFoodAnalysisService(
     parser: const PersianFoodParser(),
     localDatabase: ref.watch(localFoodDatabaseProvider),
     usda: const UsdaFoodDataService(apiKey: usdaApiKey),
     cache: ref.watch(foodSearchCacheProvider),
+    translation: ref.watch(foodNameTranslationServiceProvider),
   ),
 );
 

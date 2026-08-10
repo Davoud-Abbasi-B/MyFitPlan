@@ -15,6 +15,7 @@ abstract final class StorageKeys {
   static const dailyNutritionReports = 'daily_nutrition_reports';
   static const usdaFoodSearchCache = 'usda_food_search_cache';
   static const customFoods = 'custom_foods';
+  static const foodTranslationCache = 'food_translation_cache';
   static const cravingLogs = 'craving_logs';
   static const supplementLog = 'supplement_log';
   static const supplementReminderSettings = 'supplement_reminder_settings';

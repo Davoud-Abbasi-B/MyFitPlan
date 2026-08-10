@@ -2,7 +2,13 @@ import 'daily_nutrition_model.dart';
 
 enum FoodSourceType { local, usda, manual }
 
-enum FoodResolutionStatus { resolved, ambiguous, needsPortion, notFound }
+enum FoodResolutionStatus {
+  resolved,
+  ambiguous,
+  needsPortion,
+  notFound,
+  translationUnavailable,
+}
 
 class FoodAnalysisResult {
   const FoodAnalysisResult({
@@ -21,6 +27,7 @@ class FoodAnalysisResult {
     this.sourceType = FoodSourceType.local,
     this.sourceLabel = 'پایگاه داخلی',
     this.fdcId,
+    this.searchPhrase,
   });
 
   final String originalInput;
@@ -38,6 +45,7 @@ class FoodAnalysisResult {
   final FoodSourceType sourceType;
   final String sourceLabel;
   final int? fdcId;
+  final String? searchPhrase;
 
   Map<String, dynamic> toJson() => {
         'originalInput': originalInput,
@@ -55,6 +63,7 @@ class FoodAnalysisResult {
         'sourceType': sourceType.name,
         'sourceLabel': sourceLabel,
         'fdcId': fdcId,
+        'searchPhrase': searchPhrase,
       };
 
   factory FoodAnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -81,6 +90,7 @@ class FoodAnalysisResult {
       ),
       sourceLabel: json['sourceLabel'] as String? ?? 'داده ذخیره‌شده',
       fdcId: json['fdcId'] as int?,
+      searchPhrase: json['searchPhrase'] as String?,
     );
   }
 }

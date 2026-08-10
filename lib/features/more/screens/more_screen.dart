@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/build_identity.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_snapshot_view.dart';
@@ -82,7 +83,10 @@ class MoreScreen extends ConsumerWidget {
                             subtitle: Text(item.note ?? ''),
                             secondary: Text(
                               item.scheduleLabel,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -92,9 +96,11 @@ class MoreScreen extends ConsumerWidget {
                         const Divider(height: 24),
                         Row(
                           children: [
-                            const Expanded(child: SectionTitle('یادآور ویتامین D')),
+                            const Expanded(
+                                child: SectionTitle('یادآور ویتامین D')),
                             Switch(
-                              value: supplementsData.reminderSettings.vitaminDEnabled,
+                              value: supplementsData
+                                  .reminderSettings.vitaminDEnabled,
                               onChanged: (value) {
                                 ref
                                     .read(supplementsStateProvider.notifier)
@@ -106,17 +112,19 @@ class MoreScreen extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Text(
                           'برنامه یادآوری: هر یکشنبه ساعت ۱۲:۰۰ ظهر به مدت ۸ هفته',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           supplementsData.reminderStatusText,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                       ],
                     ),
@@ -134,6 +142,16 @@ class MoreScreen extends ConsumerWidget {
                       'صفحه‌های گزارش هفتگی، تنظیمات بیشتر یادآورها و مدیریت داده در فازهای بعدی تکمیل می‌شوند.',
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'نسخه $fitoraBuildLabel',
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.ltr,
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
                 ),
               ),
             ],

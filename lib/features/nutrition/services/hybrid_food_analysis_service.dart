@@ -1,5 +1,6 @@
 import '../models/food_analysis_result.dart';
 import 'food_analysis_service.dart';
+import 'food_name_translation_service.dart';
 import 'food_search_cache_service.dart';
 import 'local_food_database_service.dart';
 import 'persian_food_parser.dart';
@@ -11,14 +12,14 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
     required this.localDatabase,
     required this.usda,
     required this.cache,
-    this.dictionary = const PersianFoodSearchDictionary(),
+    required this.translation,
   });
 
   final PersianFoodParser parser;
   final LocalFoodDatabaseService localDatabase;
   final UsdaFoodDataService usda;
   final FoodSearchCacheService cache;
-  final PersianFoodSearchDictionary dictionary;
+  final FoodNameTranslationService translation;
 
   bool get isOnlineSearchConfigured => usda.isConfigured;
 
@@ -67,16 +68,27 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         continue;
       }
 
-      final phrase = dictionary.searchPhrase(parsed.normalizedFoodName);
-      if (phrase == null || !usda.isConfigured) {
+      if (!usda.isConfigured) {
         unresolved.add(_unresolved(
           parsed,
           'این خوراکی در پایگاه داده موجود نیست.',
           status: FoodResolutionStatus.notFound,
-          searchPhrase: phrase,
         ));
         continue;
       }
+
+      final translated = await translation.translateFoodName(
+        parsed.normalizedFoodName,
+      );
+      if (!translated.isAvailable) {
+        unresolved.add(_unresolved(
+          parsed,
+          translated.warning ?? 'مترجم آفلاین در دسترس نیست.',
+          status: FoodResolutionStatus.translationUnavailable,
+        ));
+        continue;
+      }
+      final phrase = translated.normalizedSearchText;
 
       try {
         final cached = await cache.get(phrase);
@@ -92,12 +104,13 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
               candidates: [selected],
             ));
           } else {
-            results.add(resultFromUsda(parsed, selected, grams));
+            results.add(resultFromUsda(parsed, selected, grams, phrase));
           }
           continue;
         }
 
-        final candidates = cached?.candidates ?? await usda.search(phrase);
+        final candidates =
+            cached?.candidates ?? await _searchUsdaVariants(phrase);
         if (cached == null) {
           await cache.put(FoodSearchCacheEntry(
             query: phrase,
@@ -109,7 +122,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         if (clear != null) {
           final grams = consumedGrams(parsed, candidate: clear);
           if (grams != null) {
-            results.add(resultFromUsda(parsed, clear, grams));
+            results.add(resultFromUsda(parsed, clear, grams, phrase));
             continue;
           }
         }
@@ -124,7 +137,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         if (error.type == FoodAnalysisErrorType.noResults) {
           unresolved.add(_unresolved(
             parsed,
-            'این خوراکی در پایگاه داده موجود نیست.',
+            foodAnalysisErrorMessage(error),
             status: FoodResolutionStatus.notFound,
             searchPhrase: phrase,
           ));
@@ -179,7 +192,75 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
     if (unresolved.searchPhrase != null) {
       await cache.select(unresolved.searchPhrase!, candidate);
     }
-    return resultFromUsda(parsed, candidate, grams);
+    return resultFromUsda(
+      parsed,
+      candidate,
+      grams,
+      unresolved.searchPhrase,
+    );
+  }
+
+  Future<FoodAnalysisBatchResult> analyzeWithUserTranslation(
+    UnresolvedFoodItem unresolved,
+    String englishPhrase, {
+    required bool saveForLater,
+  }) async {
+    final phrase = normalizeEnglishFoodQuery(englishPhrase);
+    if (phrase.isEmpty || !usda.isConfigured) {
+      return FoodAnalysisBatchResult(
+        originalInput: unresolved.originalSegment,
+        items: const [],
+        unresolvedItems: [unresolved],
+      );
+    }
+    if (saveForLater) {
+      await translation.saveUserOverride(unresolved.foodName, phrase);
+    }
+    final parsed = _parsedFromUnresolved(unresolved);
+    try {
+      final candidates = await _searchUsdaVariants(phrase);
+      await cache.put(FoodSearchCacheEntry(
+        query: phrase,
+        candidates: candidates,
+        timestamp: DateTime.now(),
+      ));
+      final clear = clearCandidate(candidates);
+      if (clear != null) {
+        final grams = consumedGrams(parsed, candidate: clear);
+        if (grams != null) {
+          return FoodAnalysisBatchResult(
+            originalInput: unresolved.originalSegment,
+            items: [resultFromUsda(parsed, clear, grams, phrase)],
+          );
+        }
+      }
+      return FoodAnalysisBatchResult(
+        originalInput: unresolved.originalSegment,
+        items: const [],
+        unresolvedItems: [
+          _unresolved(
+            parsed,
+            'چند خوراکی مشابه پیدا شد؛ یکی را انتخاب کنید.',
+            status: FoodResolutionStatus.ambiguous,
+            searchPhrase: phrase,
+            candidates: candidates.take(5).toList(growable: false),
+          ),
+        ],
+      );
+    } on FoodAnalysisException catch (error) {
+      return FoodAnalysisBatchResult(
+        originalInput: unresolved.originalSegment,
+        items: const [],
+        unresolvedItems: [
+          _unresolved(
+            parsed,
+            foodAnalysisErrorMessage(error),
+            status: FoodResolutionStatus.notFound,
+            searchPhrase: phrase,
+          ),
+        ],
+      );
+    }
   }
 
   Future<FoodAnalysisResult?> resolveLocalPortion(
@@ -207,6 +288,26 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
       unresolved.quantity! * gramsPerItem,
       gramsPerItem: gramsPerItem,
     );
+  }
+
+  Future<List<FoodAnalysisCandidate>> _searchUsdaVariants(
+    String primaryPhrase,
+  ) async {
+    List<FoodAnalysisCandidate>? firstPlausible;
+    FoodAnalysisException? lastNoResult;
+    for (final query in _usdaQueryVariants(primaryPhrase)) {
+      try {
+        final candidates = await usda.search(query);
+        firstPlausible ??= candidates;
+        if (clearCandidate(candidates) != null) return candidates;
+      } on FoodAnalysisException catch (error) {
+        if (error.type != FoodAnalysisErrorType.noResults) rethrow;
+        lastNoResult = error;
+      }
+    }
+    if (firstPlausible != null) return firstPlausible;
+    throw lastNoResult ??
+        const FoodAnalysisException(FoodAnalysisErrorType.noResults);
   }
 
   static double? consumedGrams(
@@ -270,6 +371,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
     ParsedFoodInput parsed,
     FoodAnalysisCandidate candidate,
     double grams,
+    String? searchPhrase,
   ) {
     final multiplier = grams / 100;
     return FoodAnalysisResult(
@@ -288,6 +390,7 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
       sourceType: FoodSourceType.usda,
       sourceLabel: 'USDA FoodData Central',
       fdcId: candidate.id,
+      searchPhrase: searchPhrase,
     );
   }
 
@@ -309,6 +412,18 @@ class HybridFoodAnalysisService implements FoodAnalysisService {
         searchPhrase: searchPhrase,
         candidates: candidates,
       );
+
+  static ParsedFoodInput _parsedFromUnresolved(UnresolvedFoodItem unresolved) =>
+      ParsedFoodInput(
+        originalSegment: unresolved.originalSegment,
+        normalizedFoodName: unresolved.foodName,
+        quantity: unresolved.quantity,
+        unit: FoodUnit.values.firstWhere(
+          (unit) => unit.name == unresolved.unit,
+          orElse: () => FoodUnit.unsupported,
+        ),
+        quantityText: unresolved.quantityText,
+      );
 }
 
 double _round(double value) => double.parse(value.toStringAsFixed(1));
@@ -316,3 +431,21 @@ double _round(double value) => double.parse(value.toStringAsFixed(1));
 String _formatGramValue(double value) => value == value.roundToDouble()
     ? value.toInt().toString()
     : value.toStringAsFixed(1);
+
+List<String> _usdaQueryVariants(String primaryPhrase) {
+  final normalized = normalizeEnglishFoodQuery(primaryPhrase);
+  final variants = <String>[normalized];
+  final tokens = normalized.split(' ');
+  for (final modifier in const ['cooked', 'raw']) {
+    final index = tokens.indexOf(modifier);
+    if (index > 0) {
+      final reordered = [
+        modifier,
+        ...tokens.where((token) => token != modifier),
+      ].join(' ');
+      if (!variants.contains(reordered)) variants.add(reordered);
+      break;
+    }
+  }
+  return variants.take(2).toList(growable: false);
+}

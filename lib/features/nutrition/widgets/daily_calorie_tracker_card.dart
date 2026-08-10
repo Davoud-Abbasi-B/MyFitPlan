@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -9,11 +10,14 @@ import '../models/daily_nutrition_model.dart';
 import '../models/food_analysis_result.dart';
 import '../providers/daily_nutrition_provider.dart';
 import '../services/food_analysis_service.dart';
+import '../services/food_name_translation_service.dart';
 import '../services/local_food_database_service.dart';
 import '../services/persian_food_parser.dart';
 
 class DailyCalorieTrackerCard extends ConsumerStatefulWidget {
-  const DailyCalorieTrackerCard({super.key});
+  const DailyCalorieTrackerCard({super.key, this.isActive = false});
+
+  final bool isActive;
 
   @override
   ConsumerState<DailyCalorieTrackerCard> createState() =>
@@ -28,7 +32,19 @@ class _DailyCalorieTrackerCardState
   FoodConfirmationGuard _confirmationGuard = FoodConfirmationGuard();
   bool _isAnalyzing = false;
   bool _isAddingPreview = false;
+  bool _isDownloadingTranslator = false;
   String? _inputError;
+
+  @override
+  void didUpdateWidget(covariant DailyCalorieTrackerCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(translationUiStateProvider.notifier).screenOpened();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -38,6 +54,7 @@ class _DailyCalorieTrackerCardState
   }
 
   Future<void> _analyze() async {
+    if (_isAnalyzing || _isAddingPreview) return;
     final input = _inputController.text.trim();
     if (input.isEmpty) {
       setState(() => _inputError = 'لطفاً خوراکی و مقدار آن را وارد کنید.');
@@ -49,6 +66,7 @@ class _DailyCalorieTrackerCardState
       _preview = null;
       _confirmationGuard = FoodConfirmationGuard();
     });
+    ref.read(translationUiStateProvider.notifier).operationStarted();
     try {
       final result = await ref.read(foodAnalysisServiceProvider).analyze(input);
       if (!mounted) return;
@@ -77,6 +95,41 @@ class _DailyCalorieTrackerCardState
     }
   }
 
+  Future<void> _downloadTranslator() async {
+    if (_isDownloadingTranslator) return;
+    setState(() {
+      _isDownloadingTranslator = true;
+    });
+    final translationUi = ref.read(translationUiStateProvider.notifier);
+    translationUi.operationStarted(downloading: true);
+    try {
+      await ref
+          .read(foodNameTranslationServiceProvider)
+          .ensureModelsDownloaded();
+      if (!mounted) return;
+      translationUi.succeeded();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('مترجم آفلاین آماده است.')),
+      );
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      translationUi.failed(
+        error.code == 'UNSUPPORTED_LANGUAGE'
+            ? TranslationModelStatus.unavailable
+            : TranslationModelStatus.downloadFailed,
+        safeTranslationDiagnostic(error),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      translationUi.failed(
+        TranslationModelStatus.downloadFailed,
+        'MODEL_DOWNLOAD_FAILED',
+      );
+    } finally {
+      if (mounted) setState(() => _isDownloadingTranslator = false);
+    }
+  }
+
   Future<FoodAnalysisBatchResult> _resolveBatch(
     FoodAnalysisBatchResult batch,
   ) async {
@@ -98,6 +151,21 @@ class _DailyCalorieTrackerCardState
         } else if (choice.action == _CandidateAction.retry) {
           _inputController.text = unresolved.originalSegment;
           _inputFocusNode.requestFocus();
+        } else if (choice.action == _CandidateAction.correctTranslation) {
+          final correction = await _showTranslationCorrection(unresolved);
+          if (!mounted) return batch;
+          if (correction != null) {
+            final corrected = await hybrid.analyzeWithUserTranslation(
+              unresolved,
+              correction.englishPhrase,
+              saveForLater: correction.saveForLater,
+            );
+            if (!mounted) return batch;
+            final resolvedCorrection = await _resolveBatch(corrected);
+            items.addAll(resolvedCorrection.items);
+            remaining.addAll(resolvedCorrection.unresolvedItems);
+            continue;
+          }
         }
       }
       if (result != null) {
@@ -114,10 +182,89 @@ class _DailyCalorieTrackerCardState
     );
   }
 
+  Future<_TranslationCorrection?> _showTranslationCorrection(
+    UnresolvedFoodItem unresolved,
+  ) async {
+    final controller = TextEditingController(text: unresolved.searchPhrase);
+    var saveForLater = true;
+    final result = await showDialog<_TranslationCorrection>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('اصلاح عبارت انگلیسی'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(unresolved.foodName),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textDirection: TextDirection.ltr,
+                decoration: const InputDecoration(
+                  labelText: 'عبارت انگلیسی برای USDA',
+                ),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: saveForLater,
+                onChanged: (value) => setDialogState(
+                  () => saveForLater = value ?? false,
+                ),
+                title: const Text('ذخیره ترجمه برای دفعات بعد'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('لغو'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final phrase = controller.text.trim();
+                if (phrase.isEmpty) return;
+                Navigator.pop(
+                  context,
+                  _TranslationCorrection(
+                    englishPhrase: phrase,
+                    saveForLater: saveForLater,
+                  ),
+                );
+              },
+              child: const Text('جست‌وجوی دوباره'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return result;
+  }
+
   Future<void> _resolveManually(UnresolvedFoodItem unresolved) async {
     final result = await _showManualEntry(unresolved);
     if (!mounted || result == null) return;
     _replaceUnresolved(unresolved, result);
+  }
+
+  Future<void> _correctUnresolvedTranslation(
+    UnresolvedFoodItem unresolved,
+  ) async {
+    final correction = await _showTranslationCorrection(unresolved);
+    if (!mounted || correction == null) return;
+    final corrected = await ref
+        .read(hybridFoodAnalysisServiceProvider)
+        .analyzeWithUserTranslation(
+          unresolved,
+          correction.englishPhrase,
+          saveForLater: correction.saveForLater,
+        );
+    if (!mounted) return;
+    final resolved = await _resolveBatch(corrected);
+    if (!mounted) return;
+    _replaceUnresolvedBatch(unresolved, resolved);
   }
 
   Future<void> _enterItemWeight(UnresolvedFoodItem unresolved) async {
@@ -165,16 +312,32 @@ class _DailyCalorieTrackerCardState
     UnresolvedFoodItem unresolved,
     FoodAnalysisResult result,
   ) {
+    _replaceUnresolvedBatch(
+      unresolved,
+      FoodAnalysisBatchResult(
+        originalInput: unresolved.originalSegment,
+        items: [result],
+      ),
+    );
+  }
+
+  void _replaceUnresolvedBatch(
+    UnresolvedFoodItem unresolved,
+    FoodAnalysisBatchResult replacement,
+  ) {
     final preview = _preview;
     if (preview == null) return;
     setState(() {
       _preview = FoodAnalysisBatchResult(
         originalInput: preview.originalInput,
-        items: [...preview.items, result],
-        unresolvedItems: preview.unresolvedItems
-            .where((item) => !identical(item, unresolved))
-            .toList(growable: false),
-        warnings: preview.warnings,
+        items: [...preview.items, ...replacement.items],
+        unresolvedItems: [
+          ...preview.unresolvedItems.where(
+            (item) => !identical(item, unresolved),
+          ),
+          ...replacement.unresolvedItems,
+        ],
+        warnings: [...preview.warnings, ...replacement.warnings],
       );
       _inputError = _preview!.needsUserAction
           ? 'برای موارد حل‌نشده، مقدار یا خوراکی مناسب را مشخص کنید.'
@@ -256,6 +419,16 @@ class _DailyCalorieTrackerCardState
                           ),
                           child: const Text('ورود دستی'),
                         ),
+                        if (unresolved.searchPhrase != null)
+                          OutlinedButton(
+                            onPressed: () => Navigator.pop(
+                              context,
+                              const _CandidateSheetResult(
+                                action: _CandidateAction.correctTranslation,
+                              ),
+                            ),
+                            child: const Text('اصلاح عبارت انگلیسی'),
+                          ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: const Text('لغو'),
@@ -514,6 +687,8 @@ class _DailyCalorieTrackerCardState
     final isTraining = daily.dayType == NutritionDayType.training;
     final lowerCalories = isTraining ? 2300 : 2100;
     final upperCalories = isTraining ? 2400 : 2200;
+    final translationUi = ref.watch(translationUiStateProvider);
+    final translationStatus = translationUi.status;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,13 +730,64 @@ class _DailyCalorieTrackerCardState
         ),
         const SizedBox(height: 8),
         Text(
-          isUsdaFoodSearchEnabled
-              ? 'پایگاه غذایی آنلاین فعال است'
-              : 'فقط پایگاه غذایی داخلی فعال است',
+          !isUsdaFoodSearchEnabled
+              ? 'فقط پایگاه غذایی داخلی فعال است'
+              : translationStatus == TranslationModelStatus.ready
+                  ? 'ترجمه آفلاین و پایگاه غذایی آنلاین فعال هستند'
+                  : translationStatus == TranslationModelStatus.downloading
+                      ? 'پایگاه غذایی آنلاین فعال است؛ مترجم در حال آماده‌سازی است'
+                      : 'مترجم آفلاین هنگام اولین استفاده بررسی می‌شود',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),
         ),
+        if (isUsdaFoodSearchEnabled &&
+            translationStatus == TranslationModelStatus.downloading)
+          const Text('در حال آماده‌سازی مترجم آفلاین...'),
+        if (isUsdaFoodSearchEnabled &&
+            translationStatus == TranslationModelStatus.ready)
+          const Text('مترجم آفلاین آماده است.'),
+        if (isUsdaFoodSearchEnabled &&
+            translationStatus == TranslationModelStatus.downloadFailed)
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'مدل ترجمه دانلود نشد. اتصال اینترنت را بررسی کنید.',
+                  style: TextStyle(color: AppColors.warning),
+                ),
+              ),
+              TextButton(
+                onPressed:
+                    _isDownloadingTranslator ? null : _downloadTranslator,
+                child: const Text('تلاش دوباره'),
+              ),
+            ],
+          ),
+        if (translationUi.diagnostic != null &&
+            translationStatus != TranslationModelStatus.ready)
+          Text(
+            translationUi.diagnostic!,
+            textDirection: TextDirection.ltr,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.warning,
+                ),
+          ),
+        if (isUsdaFoodSearchEnabled &&
+            translationStatus != TranslationModelStatus.ready)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: OutlinedButton.icon(
+              onPressed: _isDownloadingTranslator ? null : _downloadTranslator,
+              icon: _isDownloadingTranslator
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_outlined),
+              label: const Text('دانلود مترجم آفلاین'),
+            ),
+          ),
         Text(
           'مقادیر غذایی تقریبی هستند و ممکن است با برند، دستور پخت و اندازه واقعی وعده متفاوت باشند.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -577,6 +803,8 @@ class _DailyCalorieTrackerCardState
             onEdit: _editInput,
             onManual: _resolveManually,
             onPortion: _enterItemWeight,
+            onRetry: _downloadTranslator,
+            onCorrection: _correctUnresolvedTranslation,
             onCancel:
                 _isAddingPreview ? null : () => setState(() => _preview = null),
           ),
@@ -673,7 +901,7 @@ class _DailyCalorieTrackerCardState
   }
 }
 
-enum _CandidateAction { select, retry, manual, cancel }
+enum _CandidateAction { select, retry, manual, correctTranslation, cancel }
 
 class _CandidateSheetResult {
   const _CandidateSheetResult({
@@ -682,6 +910,16 @@ class _CandidateSheetResult {
   });
   final FoodAnalysisCandidate? candidate;
   final _CandidateAction action;
+}
+
+class _TranslationCorrection {
+  const _TranslationCorrection({
+    required this.englishPhrase,
+    required this.saveForLater,
+  });
+
+  final String englishPhrase;
+  final bool saveForLater;
 }
 
 class _UsdaCandidateCard extends StatelessWidget {
@@ -819,6 +1057,8 @@ class _AnalysisPreview extends StatelessWidget {
     required this.onEdit,
     required this.onManual,
     required this.onPortion,
+    required this.onRetry,
+    required this.onCorrection,
     required this.onCancel,
   });
 
@@ -828,6 +1068,8 @@ class _AnalysisPreview extends StatelessWidget {
   final VoidCallback onEdit;
   final Future<void> Function(UnresolvedFoodItem) onManual;
   final Future<void> Function(UnresolvedFoodItem) onPortion;
+  final VoidCallback onRetry;
+  final Future<void> Function(UnresolvedFoodItem) onCorrection;
   final VoidCallback? onCancel;
 
   @override
@@ -890,6 +1132,18 @@ class _AnalysisPreview extends StatelessWidget {
                               key: ValueKey('manual-entry-${item.foodName}'),
                               onPressed: isAdding ? null : () => onManual(item),
                               child: const Text('ورود دستی'),
+                            ),
+                          if (item.status ==
+                              FoodResolutionStatus.translationUnavailable)
+                            OutlinedButton(
+                              onPressed: isAdding ? null : onRetry,
+                              child: const Text('تلاش دوباره'),
+                            ),
+                          if (item.searchPhrase != null)
+                            OutlinedButton(
+                              onPressed:
+                                  isAdding ? null : () => onCorrection(item),
+                              child: const Text('اصلاح عبارت انگلیسی'),
                             ),
                         ],
                       ),
@@ -982,6 +1236,14 @@ class _AnalysisItem extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
         ),
+        if (result.searchPhrase != null)
+          Text(
+            'عبارت جست‌وجو: ${result.searchPhrase}',
+            textDirection: TextDirection.ltr,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
         ...result.assumptions.map(
           (assumption) => Text(
             'فرض: $assumption',

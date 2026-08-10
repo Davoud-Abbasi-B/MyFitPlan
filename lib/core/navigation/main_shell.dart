@@ -16,21 +16,20 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  late final List<Widget> _pages = const [
-    DashboardScreen(),
-    WorkoutPlanScreen(),
-    NutritionScreen(),
-    ProgressScreen(),
-    MoreScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final pages = <Widget>[
+      const DashboardScreen(),
+      const WorkoutPlanScreen(),
+      NutritionScreen(isActive: _currentIndex == 2),
+      const ProgressScreen(),
+      const MoreScreen(),
+    ];
     return Scaffold(
       body: SafeArea(
         child: IndexedStack(
           index: _currentIndex,
-          children: _pages,
+          children: pages,
         ),
       ),
       bottomNavigationBar: NavigationBar(
