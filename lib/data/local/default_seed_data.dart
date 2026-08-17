@@ -10,7 +10,7 @@ import '../../features/workout/models/workout_day_model.dart';
 import 'hypertrophy_workout_seed.dart';
 
 abstract final class DefaultSeedData {
-  static const int workoutSeedVersion = 4;
+  static const int workoutSeedVersion = 5;
 
   static List<WorkoutDay> workouts() => hypertrophyWorkoutPlan();
 
@@ -22,7 +22,7 @@ abstract final class DefaultSeedData {
       currentWeightKg: 87,
       targetWeightKg: 84,
       currentWaistCm: 100,
-      weeklyWorkoutDays: 5,
+      weeklyWorkoutDays: 4,
       fitnessLevel: 'متوسط',
       goals: [
         'کاهش چربی شکم',

@@ -35,11 +35,15 @@ class WorkoutDay {
       case 2:
         return 'یکشنبه';
       case 3:
-        return 'سه‌شنبه';
+        return 'دوشنبه';
       case 4:
-        return 'چهارشنبه';
+        return 'سه‌شنبه';
       case 5:
+        return 'چهارشنبه';
+      case 6:
         return 'پنجشنبه';
+      case 7:
+        return 'جمعه';
       default:
         return '';
     }
@@ -72,7 +76,8 @@ class WorkoutDay {
       focus: json['focus'] as String,
       dayNumber: json['dayNumber'] as int,
       exercises: exercisesJson
-          .map((item) => Exercise.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map((item) =>
+              Exercise.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList(),
       cardioMinutes: json['cardioMinutes'] as int? ?? 0,
       location: WorkoutLocation.values.firstWhere(

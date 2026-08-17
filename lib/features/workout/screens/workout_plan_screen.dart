@@ -8,6 +8,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_snapshot_view.dart';
 import '../../../core/widgets/section_title.dart';
+import '../exercise_motion_assets.dart';
 import '../models/exercise_model.dart';
 import '../models/workout_day_model.dart';
 import '../models/workout_log_model.dart';
@@ -133,53 +134,51 @@ Future<void> _showProgramGuide(BuildContext context) {
       ],
     ),
     (
-      title: 'نسخه کوتاه‌تر برای روزهای کم‌وقت',
+      title: 'ساختار هفتگی و ریکاوری',
       items: [
-        'پایین‌تنه A: Leg Curl را از ۲ ست به ۱ ست کاهش بده، ولی کامل حذف نکن.',
-        'بالاتنه A: Hammer/Reverse Curl یا شکم آخر جلسه را حذف کن.',
-        'پایین‌تنه B: Leg Extension را حذف کن، ولی RDL، Hip Thrust و Leg Curl را نگه دار.',
-        'بالاتنه B: Machine Chest Press یا یکی از حرکات بازو را حذف کن.',
-        'قاعده مهم: حرکات اصلی پا حذف نشوند؛ حرکات بازو و شکم قابل کاهش‌اند.',
+        'روز ۱: Lower Body A؛ روز ۲: Upper Body A.',
+        'روز ۳: استراحت یا پیاده‌روی سبک.',
+        'روز ۴: Lower Body B؛ روز ۵: Upper Body B.',
+        'روز ۶: ۴۵ تا ۶۰ دقیقه پیاده‌روی؛ روز ۷: ریکاوری کامل.',
       ],
     ),
     (
       title: 'تمرین شکم نهایی در هفته',
       items: [
         'پایین‌تنه A: Cable Crunch، ۳×۸-۱۵',
-        'بالاتنه A: Plank یا Cable Crunch سبک، ۲ ست و اختیاری',
-        'پایین‌تنه B: Reverse Crunch، ۲×۱۰-۲۰ + Pallof Press، ۲×۱۰-۱۵',
+        'بالاتنه A: Plank، ۳ ست ۴۵ تا ۶۰ ثانیه',
+        'پایین‌تنه B: Reverse Crunch، ۳×۱۰-۲۰ + Pallof Press، ۳×۱۰-۱۵',
         'بالاتنه B: Ab Wheel، ۳×۶-۱۲',
       ],
     ),
     (
       title: 'حجم هفتگی تقریبی برنامه',
       items: [
-        'چهارسر: ۱۱ تا ۱۳ ست؛ همسترینگ: ۸ تا ۱۰ ست؛ سرینی: ۹ تا ۱۲ ست؛ ساق: ۸ ست',
-        'سینه: ۷ تا ۱۰ ست؛ پشت/لت: ۱۲ ست',
-        'سرشانه میانی/خلفی: ۸ تا ۱۰ ست',
-        'جلو بازو: ۵ تا ۷ ست مستقیم؛ پشت بازو: ۵ تا ۷ ست مستقیم',
-        'ساعد/گریپ: ۴ ست مستقیم یا نیمه‌مستقیم؛ شکم: ۱۰ تا ۱۲ ست',
+        'چهارسر: ۱۲ ست مستقیم (لانج به‌عنوان سرینی طبقه‌بندی شده)؛ همسترینگ: ۹ ست؛ سرینی: حدود ۹ ست؛ ساق: ۶ ست',
+        'سینه: ۱۲ ست؛ پشت/لت: ۱۲ ست؛ سرشانه مستقیم: ۱۲ ست',
+        'جلو بازو: ۳ ست مستقیم؛ پشت بازو: ۶ ست مستقیم',
+        'شکم و میان‌تنه: ۱۵ ست؛ ساعد/گریپ: ۳ ست مستقیم',
       ],
     ),
     (
       title: 'چرخه ۱۲ هفته‌ای برنامه',
       items: [
-        'هفته ۱ تا ۲: RIR ۲ تا ۳، تثبیت وزنه؛ یک ست کمتر در حرکات فرعی قابل قبول است.',
-        'هفته ۳ تا ۵: برنامه کامل؛ اول افزایش تکرار و سپس افزایش وزنه.',
-        'هفته ۶: کاهش فشار؛ ست‌ها حدود ۵۰ تا ۶۰٪ و RIR ۳ تا ۴.',
+        'هفته ۱ تا ۲: RIR ۲ تا ۳؛ تکنیک را تثبیت کن و برای افزایش وزنه عجله نکن.',
+        'هفته ۳ تا ۵: برنامه کامل؛ افزایش تکرار در بازه تعیین‌شده اولویت دارد.',
+        'هفته ۶: دلوُد؛ تعداد ست‌ها حدود نصف و RIR ۳ تا ۴.',
         'هفته ۷ تا ۹: بازگشت به حجم کامل و پیشرفت تدریجی.',
         'هفته ۱۰ تا ۱۱: فشار کمی بیشتر؛ آخرین ست ایزوله می‌تواند RIR ۰ تا ۱ باشد.',
-        'هفته ۱۲: کاهش فشار و ارزیابی وزن، دور شکم، رکوردها و دردها.',
+        'هفته ۱۲: دلوُد و ارزیابی وزن، دور شکم، عملکرد حرکات و درد مفصلی.',
       ],
     ),
     (
       title: 'روش پیشرفت در هر حرکت',
       items: [
-        'اگر در همه ست‌ها به بالاترین تکرار رسیدی و RIR حفظ شد، جلسه بعد وزنه را کمی زیاد کن.',
-        'اگر ست اول خوب بود ولی ست‌های بعد افت شدید داشت، استراحت را بیشتر کن.',
-        'اگر دو جلسه پیاپی افت عملکرد داشتی، ۱ تا ۲ ست از همان عضله کم کن.',
+        'وقتی همه ست‌ها به بالاترین تکرار بازه رسیدند و RIR هدف و تکنیک کنترل‌شده حفظ شد، جلسه بعد وزنه را افزایش بده.',
+        'اگر تکرارها پایین‌تر از بازه هستند، وزنه بیش از حد سنگین است.',
+        'اگر تکنیک خراب شد، وزنه و/یا دامنه حرکت را کاهش بده.',
         'با درد مفصلی، حرکت، دامنه یا وزنه را تغییر بده؛ سوزش عضله با فرم خوب قابل قبول است.',
-        'اگر حرکت خیلی آسان شد، تکرار یا وزنه را افزایش بده.',
+        'سوزش و خستگی طبیعی عضله قابل قبول است؛ درد مفصلی نیست.',
       ],
     ),
     (
@@ -204,9 +203,10 @@ Future<void> _showProgramGuide(BuildContext context) {
       title: 'برنامه هوازی و قدم برای کاهش دور شکم',
       items: [
         'هوازی بعد تمرین: ۴ جلسه × ۲۰ تا ۲۵ دقیقه با شدت متوسط و قابل گفت‌وگو.',
-        'قدم روزانه: ۸۵۰۰ تا ۹۵۰۰',
-        'پیاده‌روی آخر هفته: ۴۵ تا ۶۰ دقیقه',
-        'اگر دور شکم ۲ هفته دیگر ثابت ماند، اول ۱۵۰۰ قدم اضافه کن و بعد کالری را کم کن.',
+        'قدم روزانه: ۸۵۰۰ تا ۱۰۰۰۰',
+        'روز ۳: استراحت یا پیاده‌روی سبک؛ روز ۶: ۴۵ تا ۶۰ دقیقه پیاده‌روی.',
+        'روز ۷: ریکاوری کامل.',
+        'اگر پاها بیش از حد خسته‌اند، دوچرخه ثابت سبک یا الپتیکال را انتخاب کن.',
       ],
     ),
   ];
@@ -1105,10 +1105,8 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
       case DateTime.sunday:
         return widget.workout.dayNumber == 2;
       case DateTime.tuesday:
-        return widget.workout.dayNumber == 3;
-      case DateTime.wednesday:
         return widget.workout.dayNumber == 4;
-      case DateTime.thursday:
+      case DateTime.wednesday:
         return widget.workout.dayNumber == 5;
       default:
         return false;
@@ -1833,7 +1831,9 @@ class _ExerciseGuideImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageAssetPath = _resolvedExerciseImagePath(exercise);
+    final staticImageAssetPath = _resolvedExerciseImagePath(exercise);
+    final motionAssetPath = motionAssetPathForExerciseName(exercise.name);
+    final preferredAssetPath = motionAssetPath ?? staticImageAssetPath;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1851,18 +1851,49 @@ class _ExerciseGuideImage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           clipBehavior: Clip.antiAlias,
-          child: imageAssetPath == null || imageAssetPath.isEmpty
+          child: preferredAssetPath == null || preferredAssetPath.isEmpty
               ? const _ExerciseGuidePlaceholder()
               : Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Image.asset(
-                    imageAssetPath,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _ExerciseGuidePlaceholder(label: imageAssetPath);
-                    },
+                  child: _ExerciseAssetImage(
+                    assetPath: preferredAssetPath,
+                    fallbackAssetPath:
+                        motionAssetPath == null ? null : staticImageAssetPath,
                   ),
                 ),
+        );
+      },
+    );
+  }
+}
+
+class _ExerciseAssetImage extends StatelessWidget {
+  const _ExerciseAssetImage({
+    required this.assetPath,
+    this.fallbackAssetPath,
+  });
+
+  final String assetPath;
+  final String? fallbackAssetPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      assetPath,
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
+      errorBuilder: (context, error, stackTrace) {
+        final fallback = fallbackAssetPath;
+        if (fallback == null || fallback.isEmpty || fallback == assetPath) {
+          return _ExerciseGuidePlaceholder(label: assetPath);
+        }
+
+        return Image.asset(
+          fallback,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return _ExerciseGuidePlaceholder(label: fallback);
+          },
         );
       },
     );
@@ -1987,15 +2018,15 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
         'شدت شکم مثل عضله معمولی باشد؛ با کنترل و پیشرفت تدریجی.',
         'هوازی بعد از وزنه و با شدت متوسط انجام شود.',
         'اگر هر حرکت درد مفصلی داد، همان جلسه جایگزین شود.',
-        'وقتی همه ست‌ها تمیز انجام شد، کمی وزنه یا تکرار اضافه کن.',
+        'وقتی همه ست‌ها به سقف بازه تکرار رسیدند و RIR و تکنیک حفظ شد، جلسه بعد وزنه را افزایش بده.',
         'اگر روز پایین‌تنه خیلی سنگین شد، هوازی را دوچرخه سبک بزن.',
       ],
     ),
     const _DayGuideSection(
       title: 'شدت و استراحت',
       items: [
-        'حرکات سنگین: استراحت ۹۰ تا ۱۲۰ ثانیه',
-        'حرکات سبک‌تر و تک‌مفصلی: استراحت ۴۵ تا ۷۵ ثانیه',
+        'حرکات سنگین: استراحت ۲ تا ۳ دقیقه (RDL تا ۴ دقیقه)',
+        'حرکات ایزوله: استراحت ۶۰ تا ۱۲۰ ثانیه',
         'شدت مناسب یعنی بیشتر ست‌ها با ۱ تا ۲ تکرار ذخیره تمام شوند.',
         'درد عضلانی طبیعی است؛ درد مفصلی هشدار است.',
       ],
@@ -2016,7 +2047,7 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
         'قدرت پا: حفظ یا افزایش رکوردها',
         'فرم شکم: شروع خط افتادن شکم',
         'هوازی: ۴ جلسه منظم در هفته',
-        'قدم روزانه: ۸۰۰۰ تا ۱۰۰۰۰ قدم',
+        'قدم روزانه: ۸۵۰۰ تا ۱۰۰۰۰ قدم',
       ],
     ),
   ];
@@ -2042,14 +2073,14 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
     case 'hypertrophy-day-2':
       return _DayGuideContent(
         summary:
-            'این روز روی فشار و کشش بالاتنه، حجم مستقیم بازو و یک بخش اختیاری شکم تمرکز دارد.',
+            'این روز با اولویت سینه، پشت تکمیلی، پشت بازو، سرشانه و شکم اجرا می‌شود.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۲',
             items: [
-              'Plank در روز کم‌وقت اختیاری است و بعد از حرکات بازو انجام می‌شود.',
+              'Plank بخش اصلی شکم این جلسه است و ۳ ست اجرا می‌شود.',
               'در پرس‌ها، کتف باید عقب، پایین و کنترل‌شده بماند.',
-              'Bench Press در صورت نیاز با Chest Press Machine قابل جایگزینی است.',
+              'Machine Chest Press حرکت اصلی است و Bench Press فقط جایگزین آن است.',
             ],
           ),
           ...commonSections,
@@ -2057,12 +2088,12 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
       );
     case 'hypertrophy-day-3':
       return _DayGuideContent(
-        summary: 'تمرکز این روز روی باسن، پشت پا، همسترینگ و شکم جلسه ۲ است.',
+        summary: 'تمرکز روز ۴ روی باسن، پشت پا، همسترینگ و شکم است.',
         sections: [
           const _DayGuideSection(
-            title: 'نکات اختصاصی روز ۳',
+            title: 'نکات اختصاصی روز ۴',
             items: [
-              'Leg Curl می‌تواند به‌صورت خوابیده یا نشسته اجرا شود.',
+              'نسخه نشسته Leg Curl حرکت پیش‌فرض این جلسه است.',
               'Reverse Lunge معمولا از لانج جلو برای زانو مناسب‌تر است.',
               'اگر پا خیلی خسته بود، هوازی پایانی را با دوچرخه سبک انجام بده.',
             ],
@@ -2076,7 +2107,7 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
             'این روز روی لت، سرشانه، بازو، ساعد و قدرت ضد اکستنشن شکم تمرکز دارد.',
         sections: [
           const _DayGuideSection(
-            title: 'نکات اختصاصی روز ۴',
+            title: 'نکات اختصاصی روز ۵',
             items: [
               'Assisted Pull-up، Single-Arm Cable Row و Farmer Carry با تمرکز روی ثبات کتف اجرا شوند.',
               'Lateral Raise و Rear Delt Fly با وزنه سبک و فرم تمیز بهتر جواب می‌دهند.',

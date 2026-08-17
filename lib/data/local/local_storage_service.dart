@@ -23,6 +23,10 @@ import 'storage_keys.dart';
 class LocalStorageService {
   LocalStorageService._();
 
+  LocalStorageService.forTesting(Box box) {
+    _box = box;
+  }
+
   static final LocalStorageService instance = LocalStorageService._();
 
   late Box _box;

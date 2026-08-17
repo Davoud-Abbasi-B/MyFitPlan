@@ -30,6 +30,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/exercises/
+    - assets/exercises/motion/
     - assets/data/
   fonts:
     - family: Vazirmatn
