@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -317,9 +318,11 @@ class _TrendSection extends StatelessWidget {
             latestValue:
                 '${AppDateUtils.toPersianDigits(checklist.score.toString())} از ۱۰۰',
             changeValue: _scoreChangeLabel(checklistHistory),
-            values: checklistHistory.map((item) => item.score.toDouble()).toList(),
+            values:
+                checklistHistory.map((item) => item.score.toDouble()).toList(),
             emptyMessage: 'هنوز سابقه کافی برای نمایش روند امتیاز وجود ندارد.',
             maxValue: 100,
+            chartType: _TrendChartType.bars,
           ),
           const SizedBox(height: 12),
           _TrendCard(
@@ -334,6 +337,7 @@ class _TrendSection extends StatelessWidget {
             ),
             values: progressEntries.map((entry) => entry.weightKg).toList(),
             emptyMessage: 'هنوز سابقه کافی برای نمایش روند وزن وجود ندارد.',
+            chartType: _TrendChartType.line,
           ),
           const SizedBox(height: 12),
           _TrendCard(
@@ -348,6 +352,7 @@ class _TrendSection extends StatelessWidget {
             ),
             values: progressEntries.map((entry) => entry.waistCm).toList(),
             emptyMessage: 'هنوز سابقه کافی برای نمایش روند دور شکم وجود ندارد.',
+            chartType: _TrendChartType.line,
           ),
         ],
       ),
@@ -362,6 +367,7 @@ class _TrendCard extends StatelessWidget {
     required this.changeValue,
     required this.values,
     required this.emptyMessage,
+    required this.chartType,
     this.maxValue,
   });
 
@@ -370,12 +376,11 @@ class _TrendCard extends StatelessWidget {
   final String changeValue;
   final List<double> values;
   final String emptyMessage;
+  final _TrendChartType chartType;
   final double? maxValue;
 
   @override
   Widget build(BuildContext context) {
-    final hasEnoughData = values.length > 1;
-
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.primaryLight.withOpacity(0.35),
@@ -411,25 +416,24 @@ class _TrendCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (hasEnoughData)
-              _SparkBars(values: values, maxValue: maxValue)
+            if (values.isNotEmpty)
+              switch (chartType) {
+                _TrendChartType.bars =>
+                  _SparkBars(values: values, maxValue: maxValue),
+                _TrendChartType.line => _LineSparkline(values: values),
+              }
             else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+              SizedBox(
+                height: 90,
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
                     emptyMessage,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
                   ),
-                  const SizedBox(height: 10),
-                  _EmptyTrendBar(
-                    value: maxValue == null
-                        ? 0.35
-                        : (values.isEmpty ? 0.0 : (values.last / maxValue!)),
-                  ),
-                ],
+                ),
               ),
           ],
         ),
@@ -600,67 +604,205 @@ class _SparkBars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeValues = values.isEmpty ? [0.0] : values;
-    final min = safeValues.reduce(math.min);
-    final max = maxValue ?? safeValues.reduce(math.max);
+    final min = values.reduce(math.min);
+    final max = maxValue ?? values.reduce(math.max);
     final range = math.max(max - min, 1);
+    const barWidth = 10.0;
+    const spacing = 6.0;
 
     return SizedBox(
       height: 90,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: safeValues.map((value) {
-          final normalized = maxValue != null
-              ? (value / maxValue!).clamp(0.12, 1.0)
-              : (((value - min) / range) * 0.88 + 0.12).clamp(0.12, 1.0);
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final chartWidth = values.length * barWidth +
+              math.max(0, values.length - 1) * spacing;
+          final bars = Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            textDirection: TextDirection.ltr,
+            children: [
+              for (var index = 0; index < values.length; index++) ...[
+                if (index > 0) const SizedBox(width: spacing),
+                Builder(
+                  builder: (context) {
+                    final value = values[index];
+                    final normalized = maxValue != null
+                        ? (value / maxValue!).clamp(0.12, 1.0)
+                        : (((value - min) / range) * 0.88 + 0.12)
+                            .clamp(0.12, 1.0);
 
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  height: 90 * normalized,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: AnimatedContainer(
+                        key: const ValueKey('dashboard-score-bar'),
+                        duration: const Duration(milliseconds: 250),
+                        width: barWidth,
+                        height: 90 * normalized,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              ),
-            ),
+              ],
+            ],
           );
-        }).toList(),
+
+          if (chartWidth <= constraints.maxWidth) {
+            return Align(alignment: Alignment.centerRight, child: bars);
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: bars,
+          );
+        },
       ),
     );
   }
 }
 
-class _EmptyTrendBar extends StatelessWidget {
-  const _EmptyTrendBar({required this.value});
+class _LineSparkline extends StatelessWidget {
+  const _LineSparkline({required this.values});
 
-  final double value;
+  final List<double> values;
+
+  static const _height = 80.0;
+  static const _horizontalPadding = 8.0;
+  static const _verticalPadding = 8.0;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 12,
-      decoration: BoxDecoration(
-        color: AppColors.border,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerRight,
-        widthFactor: value.clamp(0.0, 1.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
+    return SizedBox(
+      key: const ValueKey('dashboard-line-sparkline'),
+      height: _height,
+      width: double.infinity,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final points = _sparklinePoints(
+            values,
+            Size(constraints.maxWidth, _height),
+          );
+          final latest = points.last;
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _LineSparklinePainter(points: points),
+                ),
+              ),
+              Positioned(
+                key: const ValueKey('dashboard-latest-value-marker'),
+                left: latest.dx - 5,
+                top: latest.dy - 5,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+
+  List<Offset> _sparklinePoints(List<double> values, Size size) {
+    final minValue = values.reduce(math.min);
+    final maxValue = values.reduce(math.max);
+    final valueRange = maxValue - minValue;
+    final drawableWidth = math.max(0.0, size.width - 2 * _horizontalPadding);
+    final drawableHeight = size.height - 2 * _verticalPadding;
+
+    return List.generate(values.length, (index) {
+      final x = values.length == 1
+          ? size.width / 2
+          : _horizontalPadding + drawableWidth * index / (values.length - 1);
+      final normalized = valueRange == 0
+          ? 0.5
+          : 0.1 + 0.8 * (values[index] - minValue) / valueRange;
+      final y = _verticalPadding + drawableHeight * (1 - normalized);
+      return Offset(x, y);
+    });
+  }
+}
+
+class _LineSparklinePainter extends CustomPainter {
+  const _LineSparklinePainter({required this.points});
+
+  final List<Offset> points;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = AppColors.primary
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+    final markerPaint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.fill;
+
+    if (points.length > 1) {
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (final point in points.skip(1)) {
+        path.lineTo(point.dx, point.dy);
+      }
+      canvas.drawPath(path, linePaint);
+    }
+
+    for (final point in points.take(math.max(0, points.length - 1))) {
+      canvas.drawCircle(point, 2.5, markerPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LineSparklinePainter oldDelegate) {
+    return !listEquals(points, oldDelegate.points);
+  }
+}
+
+enum _TrendChartType { bars, line }
+
+@visibleForTesting
+Widget buildDashboardSparkBarsForTest(
+  List<double> values, {
+  double? maxValue,
+}) {
+  return _SparkBars(values: values, maxValue: maxValue);
+}
+
+@visibleForTesting
+Widget buildDashboardLineSparklineForTest(List<double> values) {
+  return _LineSparkline(values: values);
+}
+
+@visibleForTesting
+Widget buildDashboardTrendCardForTest({
+  required List<double> values,
+  required String emptyMessage,
+  bool useBars = false,
+}) {
+  return _TrendCard(
+    title: 'روند آزمایشی',
+    latestValue: '۱',
+    changeValue: '۰',
+    values: values,
+    emptyMessage: emptyMessage,
+    chartType: useBars ? _TrendChartType.bars : _TrendChartType.line,
+    maxValue: useBars ? 100 : null,
+  );
 }
 
 class _ChecklistEntry {
@@ -698,7 +840,8 @@ WorkoutDay? _workoutForToday(List<WorkoutDay> workouts, DateTime now) {
 }
 
 String _formatNumber(double value) {
-  final raw = value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+  final raw =
+      value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
   return AppDateUtils.toPersianDigits(raw);
 }
 

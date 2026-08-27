@@ -8,7 +8,6 @@ import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_snapshot_view.dart';
 import '../../../core/widgets/section_title.dart';
-import '../exercise_motion_assets.dart';
 import '../models/exercise_model.dart';
 import '../models/workout_day_model.dart';
 import '../models/workout_log_model.dart';
@@ -44,7 +43,7 @@ class WorkoutPlanScreen extends ConsumerWidget {
         builder: (data) {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: data.workouts.length + 3,
+            itemCount: data.workouts.length + 2,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -53,11 +52,7 @@ class WorkoutPlanScreen extends ConsumerWidget {
               if (index == 1) {
                 return const _ProgramGuideCard();
               }
-              if (index == 2) {
-                return const _VideoAbsGuideCard();
-              }
-
-              return _WorkoutDayCard(workout: data.workouts[index - 3]);
+              return _WorkoutDayCard(workout: data.workouts[index - 2]);
             },
           );
         },
@@ -81,7 +76,7 @@ class _ProgramGuideCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'راهنمای اجرای برنامه هایپرتروفی',
+                  'راهنمای برنامه تخصصی ۴ هفته‌ای بالاتنه',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -91,7 +86,7 @@ class _ProgramGuideCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'اصول RIR، استراحت، پیشرفت، نسخه کم‌وقت و چرخه ۱۲ هفته‌ای',
+            'ساختار هفتگی، RIR، ریکاوری و پیشرفت در این بلوک موقت',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -136,39 +131,37 @@ Future<void> _showProgramGuide(BuildContext context) {
     (
       title: 'ساختار هفتگی و ریکاوری',
       items: [
-        'روز ۱: Lower Body A؛ روز ۲: Upper Body A.',
+        'روز ۱: Upper A؛ روز ۲: Upper B.',
         'روز ۳: استراحت یا پیاده‌روی سبک.',
-        'روز ۴: Lower Body B؛ روز ۵: Upper Body B.',
-        'روز ۶: ۴۵ تا ۶۰ دقیقه پیاده‌روی؛ روز ۷: ریکاوری کامل.',
+        'روز ۴: Lower؛ روز ۶: Upper C.',
+        'روز ۵: استراحت؛ روز ۶: Upper C؛ روز ۷: استراحت یا پیاده‌روی.',
       ],
     ),
     (
       title: 'تمرین شکم نهایی در هفته',
       items: [
-        'پایین‌تنه A: Cable Crunch، ۳×۸-۱۵',
-        'بالاتنه A: Plank، ۳ ست ۴۵ تا ۶۰ ثانیه',
-        'پایین‌تنه B: Reverse Crunch، ۳×۱۰-۲۰ + Pallof Press، ۳×۱۰-۱۵',
-        'بالاتنه B: Ab Wheel، ۳×۶-۱۲',
+        'Upper A: Cable Crunch، ۳×۱۰-۱۵',
+        'Upper B: Hanging Knee Raise، ۳×۱۰-۱۵',
+        'Lower: Reverse Crunch، ۳×۱۲-۲۰',
+        'Upper C: Ab Wheel، ۳×۶-۱۲',
       ],
     ),
     (
       title: 'حجم هفتگی تقریبی برنامه',
       items: [
-        'چهارسر: ۱۲ ست مستقیم (لانج به‌عنوان سرینی طبقه‌بندی شده)؛ همسترینگ: ۹ ست؛ سرینی: حدود ۹ ست؛ ساق: ۶ ست',
-        'سینه: ۱۲ ست؛ پشت/لت: ۱۲ ست؛ سرشانه مستقیم: ۱۲ ست',
-        'جلو بازو: ۳ ست مستقیم؛ پشت بازو: ۶ ست مستقیم',
-        'شکم و میان‌تنه: ۱۵ ست؛ ساعد/گریپ: ۳ ست مستقیم',
+        'سینه: ۱۸ ست؛ پشت/لت: ۹ ست؛ سرشانه مستقیم: ۱۲ ست',
+        'جلو بازو/براکیالیس: ۱۲ ست؛ پشت بازو: ۹ ست مستقیم',
+        'ساعد/براکیورادیالیس: ۶ ست هدفمند؛ شکم و میان‌تنه: ۱۲ ست',
+        'چهارسر: ۹ ست؛ همسترینگ: ۶ ست؛ سرینی: ۳ ست؛ ساق: ۳ ست مستقیم',
       ],
     ),
     (
-      title: 'چرخه ۱۲ هفته‌ای برنامه',
+      title: 'بلوک تخصصی ۴ هفته‌ای',
       items: [
-        'هفته ۱ تا ۲: RIR ۲ تا ۳؛ تکنیک را تثبیت کن و برای افزایش وزنه عجله نکن.',
-        'هفته ۳ تا ۵: برنامه کامل؛ افزایش تکرار در بازه تعیین‌شده اولویت دارد.',
-        'هفته ۶: دلوُد؛ تعداد ست‌ها حدود نصف و RIR ۳ تا ۴.',
-        'هفته ۷ تا ۹: بازگشت به حجم کامل و پیشرفت تدریجی.',
-        'هفته ۱۰ تا ۱۱: فشار کمی بیشتر؛ آخرین ست ایزوله می‌تواند RIR ۰ تا ۱ باشد.',
-        'هفته ۱۲: دلوُد و ارزیابی وزن، دور شکم، عملکرد حرکات و درد مفصلی.',
+        'هدف اصلی: تخصص موقت بالاتنه همراه با حفظ عملکرد پایین‌تنه.',
+        'هفته ۱: حرکات اصلی RIR ۲ تا ۳ و حرکات ایزوله حدود RIR ۲؛ تا ناتوانی نرو و دنبال رکورد نباش.',
+        'هفته ۱: ریکاوری شانه، آرنج و سینه را پایش کن.',
+        'هفته‌های ۲ تا ۴: RIR تجویزشده ۱ تا ۲ و پیشرفت تدریجی تکرار یا وزنه؛ حرکت جدید اضافه نکن.',
       ],
     ),
     (
@@ -204,8 +197,8 @@ Future<void> _showProgramGuide(BuildContext context) {
       items: [
         'هوازی بعد تمرین: ۴ جلسه × ۲۰ تا ۲۵ دقیقه با شدت متوسط و قابل گفت‌وگو.',
         'قدم روزانه: ۸۵۰۰ تا ۱۰۰۰۰',
-        'روز ۳: استراحت یا پیاده‌روی سبک؛ روز ۶: ۴۵ تا ۶۰ دقیقه پیاده‌روی.',
-        'روز ۷: ریکاوری کامل.',
+        'روز ۳ و روز ۵: استراحت یا پیاده‌روی سبک.',
+        'روز ۷: استراحت یا پیاده‌روی.',
         'اگر پاها بیش از حد خسته‌اند، دوچرخه ثابت سبک یا الپتیکال را انتخاب کن.',
       ],
     ),
@@ -253,6 +246,8 @@ Future<void> _showProgramGuide(BuildContext context) {
   );
 }
 
+// Retained as an inactive exercise-technique reference for older content.
+// ignore: unused_element
 class _VideoAbsGuideCard extends StatelessWidget {
   const _VideoAbsGuideCard();
 
@@ -710,7 +705,7 @@ const _videoAbsExercises = [
 const _videoAbsSessions = [
   _VideoAbsSession(
     title: 'جلسه شکم مکمل ۱؛ بعد پایین‌تنه A',
-    relatedDay: 'مرتبط با روز ۱: Lower Body A + Abs 1',
+    relatedDay: 'کتابخانه تکنیک قدیمی؛ جزو برنامه فعال نیست',
     exercises: [
       'Tuck Crunch / کرانچ جمع‌کردن زانو: ۳ ست، ۱۰ تا ۱۲ تکرار، استراحت ۶۰ تا ۹۰ ثانیه',
       'Lying Leg Raise / بالا آوردن پا خوابیده: ۳ ست، ۸ تا ۱۲ تکرار، استراحت ۶۰ تا ۹۰ ثانیه',
@@ -718,7 +713,7 @@ const _videoAbsSessions = [
   ),
   _VideoAbsSession(
     title: 'جلسه شکم مکمل ۲؛ بعد پایین‌تنه B',
-    relatedDay: 'مرتبط با روز ۳: Lower Body B + Abs 2',
+    relatedDay: 'کتابخانه تکنیک قدیمی؛ جزو برنامه فعال نیست',
     exercises: [
       'Side Plank Hip Dip / پلانک پهلو با حرکت لگن: ۳ ست، ۱۰ تا ۱۵ تکرار هر سمت، استراحت ۶۰ تا ۹۰ ثانیه',
       'Lying Leg Raise / بالا آوردن پا خوابیده: ۳ ست، ۸ تا ۱۲ تکرار، استراحت ۶۰ تا ۹۰ ثانیه',
@@ -1106,8 +1101,8 @@ class _WorkoutDayCardState extends ConsumerState<_WorkoutDayCard> {
         return widget.workout.dayNumber == 2;
       case DateTime.tuesday:
         return widget.workout.dayNumber == 4;
-      case DateTime.wednesday:
-        return widget.workout.dayNumber == 5;
+      case DateTime.thursday:
+        return widget.workout.dayNumber == 6;
       default:
         return false;
     }
@@ -1596,7 +1591,7 @@ class _ExerciseLogEditor extends ConsumerWidget {
                         ),
                   ),
                   const SizedBox(height: 12),
-                  _ExerciseGuideImage(exercise: exercise),
+                  ExerciseGuideImage(exercise: exercise),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
@@ -1824,16 +1819,14 @@ const _alternativeExerciseGuides = <String, _AlternativeExerciseGuide>{
   ),
 };
 
-class _ExerciseGuideImage extends StatelessWidget {
-  const _ExerciseGuideImage({required this.exercise});
+class ExerciseGuideImage extends StatelessWidget {
+  const ExerciseGuideImage({super.key, required this.exercise});
 
   final Exercise exercise;
 
   @override
   Widget build(BuildContext context) {
-    final staticImageAssetPath = _resolvedExerciseImagePath(exercise);
-    final motionAssetPath = motionAssetPathForExerciseName(exercise.name);
-    final preferredAssetPath = motionAssetPath ?? staticImageAssetPath;
+    final imageAssetPath = resolvedExerciseImagePath(exercise);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1851,15 +1844,11 @@ class _ExerciseGuideImage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           clipBehavior: Clip.antiAlias,
-          child: preferredAssetPath == null || preferredAssetPath.isEmpty
+          child: imageAssetPath == null || imageAssetPath.isEmpty
               ? const _ExerciseGuidePlaceholder()
               : Padding(
                   padding: const EdgeInsets.all(12),
-                  child: _ExerciseAssetImage(
-                    assetPath: preferredAssetPath,
-                    fallbackAssetPath:
-                        motionAssetPath == null ? null : staticImageAssetPath,
-                  ),
+                  child: _ExerciseAssetImage(assetPath: imageAssetPath),
                 ),
         );
       },
@@ -1868,13 +1857,9 @@ class _ExerciseGuideImage extends StatelessWidget {
 }
 
 class _ExerciseAssetImage extends StatelessWidget {
-  const _ExerciseAssetImage({
-    required this.assetPath,
-    this.fallbackAssetPath,
-  });
+  const _ExerciseAssetImage({required this.assetPath});
 
   final String assetPath;
-  final String? fallbackAssetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -1883,18 +1868,7 @@ class _ExerciseAssetImage extends StatelessWidget {
       fit: BoxFit.contain,
       gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
-        final fallback = fallbackAssetPath;
-        if (fallback == null || fallback.isEmpty || fallback == assetPath) {
-          return _ExerciseGuidePlaceholder(label: assetPath);
-        }
-
-        return Image.asset(
-          fallback,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            return _ExerciseGuidePlaceholder(label: fallback);
-          },
-        );
+        return _ExerciseGuidePlaceholder(label: assetPath);
       },
     );
   }
@@ -2040,78 +2014,72 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
       ],
     ),
     const _DayGuideSection(
-      title: 'هدف ۱۲ هفته‌ای با این برنامه',
+      title: 'هدف بلوک ۴ هفته‌ای',
       items: [
-        'وزن: حدود ۸۳.۵ تا ۸۴.۵ کیلو',
-        'دور شکم: حدود ۹۰ تا ۹۳ سانتی‌متر',
-        'قدرت پا: حفظ یا افزایش رکوردها',
-        'فرم شکم: شروع خط افتادن شکم',
-        'هوازی: ۴ جلسه منظم در هفته',
-        'قدم روزانه: ۸۵۰۰ تا ۱۰۰۰۰ قدم',
+        'تخصص موقت بالاتنه همراه با حفظ عملکرد پایین‌تنه.',
+        'هفته ۱ محافظه‌کارانه اجرا شود و ریکاوری شانه، آرنج و سینه پایش شود.',
+        'هفته‌های ۲ تا ۴ با حفظ تکنیک و RIR هدف، تکرار یا وزنه تدریجی افزایش یابد.',
       ],
     ),
   ];
 
   switch (workout.id) {
-    case 'hypertrophy-day-1':
+    case 'upper-specialization-v6-day-1':
       return _DayGuideContent(
-        summary:
-            'تمرکز این روز روی چهارسر، کنترل زانو، حجم پا و شکم جلسه ۱ است.',
+        summary: 'تمرکز Upper A روی سینه، پشت بازو و Cable Crunch است.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۱',
             items: [
-              'اگر زانو حساس بود، Leg Press را پیش از Smith Squat انجام بده.',
-              'Leg Curl این روز تعادل حجم جلوی ران و همسترینگ را حفظ می‌کند.',
-              'Cable Crunch حرکت اصلی و قابل‌پیشرفت شکم این روز است.',
-              'برای هوازی انتهای جلسه، شیب ملایم یا الپتیکال مناسب است.',
+              'Machine Chest Press حرکت اصلی است و Bench Press جایگزین آن است.',
+              'در هفته ۱ پرس‌ها را با RIR ۲ تا ۳ و حرکات ایزوله را حدود RIR ۲ اجرا کن.',
+              'Cable Crunch تنها حرکت مستقیم شکم این جلسه و ۳ ست است.',
             ],
           ),
           ...commonSections,
         ],
       );
-    case 'hypertrophy-day-2':
+    case 'upper-specialization-v6-day-2':
       return _DayGuideContent(
         summary:
-            'این روز با اولویت سینه، پشت تکمیلی، پشت بازو، سرشانه و شکم اجرا می‌شود.',
+            'تمرکز Upper B روی پشت، جلو بازو، ساعد و Hanging Knee Raise است.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۲',
             items: [
-              'Plank بخش اصلی شکم این جلسه است و ۳ ست اجرا می‌شود.',
-              'در پرس‌ها، کتف باید عقب، پایین و کنترل‌شده بماند.',
-              'Machine Chest Press حرکت اصلی است و Bench Press فقط جایگزین آن است.',
+              'Lat Pulldown حرکت اصلی است و Assisted Pull-up جایگزین آن است.',
+              'Hammer Curl و Reverse Curl ساعد و براکیورادیالیس را هدف می‌گیرند.',
+              'Hanging Knee Raise تنها حرکت مستقیم شکم این جلسه و ۳ ست است.',
             ],
           ),
           ...commonSections,
         ],
       );
-    case 'hypertrophy-day-3':
+    case 'upper-specialization-v6-day-3':
       return _DayGuideContent(
-        summary: 'تمرکز روز ۴ روی باسن، پشت پا، همسترینگ و شکم است.',
+        summary: 'این تنها جلسه پایین‌تنه بلوک و شامل کل پایین‌تنه و شکم است.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۴',
             items: [
-              'نسخه نشسته Leg Curl حرکت پیش‌فرض این جلسه است.',
-              'Reverse Lunge معمولا از لانج جلو برای زانو مناسب‌تر است.',
-              'اگر پا خیلی خسته بود، هوازی پایانی را با دوچرخه سبک انجام بده.',
+              'Smith Squat حرکت اصلی است و Hack Squat جایگزین آن است.',
+              'Romanian Deadlift با RIR ۲ و کنترل کامل اجرا شود.',
+              'Reverse Crunch تنها حرکت مستقیم شکم این جلسه و ۳ ست است.',
             ],
           ),
           ...commonSections,
         ],
       );
-    case 'hypertrophy-day-4':
+    case 'upper-specialization-v6-day-4':
       return _DayGuideContent(
-        summary:
-            'این روز روی لت، سرشانه، بازو، ساعد و قدرت ضد اکستنشن شکم تمرکز دارد.',
+        summary: 'تمرکز Upper C روی سرشانه، سینه تکمیلی، بازو و Ab Wheel است.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۵',
             items: [
-              'Assisted Pull-up، Single-Arm Cable Row و Farmer Carry با تمرکز روی ثبات کتف اجرا شوند.',
-              'Lateral Raise و Rear Delt Fly با وزنه سبک و فرم تمیز بهتر جواب می‌دهند.',
-              'Ab Wheel بعد از Farmer Carry و پیش از هوازی قرار می‌گیرد.',
+              'Dumbbell Shoulder Press حرکت اصلی است و Machine Shoulder Press جایگزین آن است.',
+              'Lateral Raise و Cable Lateral Raise دو حرکت مستقل با شناسه‌های جدا هستند.',
+              'Ab Wheel تنها حرکت مستقیم شکم این جلسه و ۳ ست است.',
             ],
           ),
           ...commonSections,
@@ -2131,7 +2099,7 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
             ],
           ),
           _DayGuideSection(
-            title: 'هدف ۱۲ هفته‌ای با این برنامه',
+            title: 'راهنمای ریکاوری عمومی',
             items: [
               'وزن: حدود ۸۳.۵ تا ۸۴.۵ کیلو',
               'دور شکم: حدود ۹۰ تا ۹۳ سانتی‌متر',
@@ -2148,7 +2116,7 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
   }
 }
 
-String? _resolvedExerciseImagePath(Exercise exercise) {
+String? resolvedExerciseImagePath(Exercise exercise) {
   if (exercise.imageAssetPath != null && exercise.imageAssetPath!.isNotEmpty) {
     return exercise.imageAssetPath;
   }
@@ -2181,6 +2149,10 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
     'lying leg raise': 'assets/exercises/lying_leg_raise.png',
     'Bench Press': 'assets/exercises/bench_press.png',
     'bench press': 'assets/exercises/bench_press.png',
+    'Flat Dumbbell Press': 'assets/exercises/flat_dumbbell_press.png',
+    'flat dumbbell press': 'assets/exercises/flat_dumbbell_press.png',
+    'Cable Fly': 'assets/exercises/cable_fly.png',
+    'cable fly': 'assets/exercises/cable_fly.png',
     'Lat Pulldown': 'assets/exercises/lat_pulldown.png',
     'lat pulldown': 'assets/exercises/lat_pulldown.png',
     'Lat Pulldown دست جمع': 'assets/exercises/lat_pulldown.png',
@@ -2221,6 +2193,8 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
     'reverse crunch': 'assets/exercises/reverse_crunch.png',
     'Ab Wheel': 'assets/exercises/ab_wheel.png',
     'ab wheel': 'assets/exercises/ab_wheel.png',
+    'Hanging Knee Raise': 'assets/exercises/hanging_knee_raise.png',
+    'hanging knee raise': 'assets/exercises/hanging_knee_raise.png',
     'Body Saw': 'assets/exercises/body_saw.png',
     'body saw': 'assets/exercises/body_saw.png',
     'Romanian Deadlift': 'assets/exercises/romanian_deadlift.png',
@@ -2249,6 +2223,10 @@ String? _resolvedExerciseImagePath(Exercise exercise) {
     'cable row تک‌دست': 'assets/exercises/cable_row_single_arm.png',
     'Lateral Raise': 'assets/exercises/lateral_raise.png',
     'lateral raise': 'assets/exercises/lateral_raise.png',
+    'Cable Lateral Raise': 'assets/exercises/cable_lateral_raise.png',
+    'cable lateral raise': 'assets/exercises/cable_lateral_raise.png',
+    'Low-to-High Cable Fly': 'assets/exercises/low_to_high_cable_fly.png',
+    'low-to-high cable fly': 'assets/exercises/low_to_high_cable_fly.png',
     'Rear Delt Fly': 'assets/exercises/rear_delt_fly.png',
     'rear delt fly': 'assets/exercises/rear_delt_fly.png',
     'Farmer Carry': 'assets/exercises/farmer_carry.png',
