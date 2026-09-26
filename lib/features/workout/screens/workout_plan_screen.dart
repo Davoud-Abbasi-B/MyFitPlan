@@ -149,7 +149,7 @@ Future<void> _showProgramGuide(BuildContext context) {
     (
       title: 'حجم هفتگی تقریبی برنامه',
       items: [
-        'سینه: ۱۸ ست؛ پشت/لت: ۹ ست؛ سرشانه مستقیم: ۱۲ ست',
+        'سینه: ۱۸ ست؛ پشت/لت: ۹ ست؛ سرشانه مستقیم: ۱۰ ست؛ کول: ۳ ست',
         'جلو بازو/براکیالیس: ۱۲ ست؛ پشت بازو: ۹ ست مستقیم',
         'ساعد/براکیورادیالیس: ۶ ست هدفمند؛ شکم و میان‌تنه: ۱۲ ست',
         'چهارسر: ۹ ست؛ همسترینگ: ۶ ست؛ سرینی: ۳ ست؛ ساق: ۳ ست مستقیم',
@@ -2024,7 +2024,7 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
   ];
 
   switch (workout.id) {
-    case 'upper-specialization-v6-day-1':
+    case 'upper-specialization-v7-day-1':
       return _DayGuideContent(
         summary: 'تمرکز Upper A روی سینه، پشت بازو و Cable Crunch است.',
         sections: [
@@ -2039,15 +2039,15 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
           ...commonSections,
         ],
       );
-    case 'upper-specialization-v6-day-2':
+    case 'upper-specialization-v7-day-2':
       return _DayGuideContent(
         summary:
-            'تمرکز Upper B روی پشت، جلو بازو، ساعد و Hanging Knee Raise است.',
+            'تمرکز Upper B روی پشت، جلو بازو، ساعد، پشت سرشانه و Hanging Knee Raise است.',
         sections: [
           const _DayGuideSection(
             title: 'نکات اختصاصی روز ۲',
             items: [
-              'Lat Pulldown حرکت اصلی است و Assisted Pull-up جایگزین آن است.',
+              'Pull-up یا Assisted Pull-up انتخاب اصلی است و Lat Pulldown جایگزین عملی آن است.',
               'Hammer Curl و Reverse Curl ساعد و براکیورادیالیس را هدف می‌گیرند.',
               'Hanging Knee Raise تنها حرکت مستقیم شکم این جلسه و ۳ ست است.',
             ],
@@ -2055,7 +2055,7 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
           ...commonSections,
         ],
       );
-    case 'upper-specialization-v6-day-3':
+    case 'upper-specialization-v7-day-3':
       return _DayGuideContent(
         summary: 'این تنها جلسه پایین‌تنه بلوک و شامل کل پایین‌تنه و شکم است.',
         sections: [
@@ -2070,15 +2070,16 @@ _DayGuideContent _dayGuideForWorkout(WorkoutDay workout) {
           ...commonSections,
         ],
       );
-    case 'upper-specialization-v6-day-4':
+    case 'upper-specialization-v7-day-4':
       return _DayGuideContent(
-        summary: 'تمرکز Upper C روی سرشانه، سینه تکمیلی، بازو و Ab Wheel است.',
+        summary:
+            'تمرکز Upper C روی سرشانه، کول، سینه تکمیلی، بازو و Ab Wheel است.',
         sections: [
           const _DayGuideSection(
-            title: 'نکات اختصاصی روز ۵',
+            title: 'نکات اختصاصی روز ۶',
             items: [
-              'Dumbbell Shoulder Press حرکت اصلی است و Machine Shoulder Press جایگزین آن است.',
-              'Lateral Raise و Cable Lateral Raise دو حرکت مستقل با شناسه‌های جدا هستند.',
+              'Machine Shoulder Press حرکت اصلی است و Dumbbell Shoulder Press جایگزین آن است.',
+              'Dumbbell Lateral Raise چهار ست دارد و Dumbbell Shrug عضلات کول را هدف می‌گیرد.',
               'Ab Wheel تنها حرکت مستقیم شکم این جلسه و ۳ ست است.',
             ],
           ),
@@ -2155,6 +2156,8 @@ String? resolvedExerciseImagePath(Exercise exercise) {
     'cable fly': 'assets/exercises/cable_fly.png',
     'Lat Pulldown': 'assets/exercises/lat_pulldown.png',
     'lat pulldown': 'assets/exercises/lat_pulldown.png',
+    'Pull-up / Assisted Pull-up': 'assets/exercises/assisted_pullup.png',
+    'pull-up / assisted pull-up': 'assets/exercises/assisted_pullup.png',
     'Lat Pulldown دست جمع': 'assets/exercises/lat_pulldown.png',
     'lat pulldown دست جمع': 'assets/exercises/lat_pulldown.png',
     'Seated Row': 'assets/exercises/seated_row.png',
@@ -2163,6 +2166,8 @@ String? resolvedExerciseImagePath(Exercise exercise) {
     'chest-supported row': 'assets/exercises/chest_supported_row.png',
     'Dumbbell Shoulder Press': 'assets/exercises/shoulder_press.png',
     'dumbbell shoulder press': 'assets/exercises/shoulder_press.png',
+    'Machine Shoulder Press': 'assets/exercises/shoulder_press.png',
+    'machine shoulder press': 'assets/exercises/shoulder_press.png',
     'Landmine Press': 'assets/exercises/landmine_press.png',
     'landmine press': 'assets/exercises/landmine_press.png',
     'Face Pull': 'assets/exercises/face_pull.png',
@@ -2223,12 +2228,16 @@ String? resolvedExerciseImagePath(Exercise exercise) {
     'cable row تک‌دست': 'assets/exercises/cable_row_single_arm.png',
     'Lateral Raise': 'assets/exercises/lateral_raise.png',
     'lateral raise': 'assets/exercises/lateral_raise.png',
+    'Dumbbell Lateral Raise': 'assets/exercises/lateral_raise.png',
+    'dumbbell lateral raise': 'assets/exercises/lateral_raise.png',
     'Cable Lateral Raise': 'assets/exercises/cable_lateral_raise.png',
     'cable lateral raise': 'assets/exercises/cable_lateral_raise.png',
     'Low-to-High Cable Fly': 'assets/exercises/low_to_high_cable_fly.png',
     'low-to-high cable fly': 'assets/exercises/low_to_high_cable_fly.png',
     'Rear Delt Fly': 'assets/exercises/rear_delt_fly.png',
     'rear delt fly': 'assets/exercises/rear_delt_fly.png',
+    'Dumbbell Shrug': 'assets/exercises/dumbbell_shrug.png',
+    'dumbbell shrug': 'assets/exercises/dumbbell_shrug.png',
     'Farmer Carry': 'assets/exercises/farmer_carry.png',
     'farmer carry': 'assets/exercises/farmer_carry.png',
     'دوچرخه ثابت': 'assets/exercises/bicycle.png',

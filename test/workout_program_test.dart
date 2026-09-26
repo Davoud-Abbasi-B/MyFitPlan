@@ -12,7 +12,7 @@ void main() {
     final workouts = DefaultSeedData.workouts();
 
     test('contains exactly the four scheduled resistance sessions', () {
-      expect(DefaultSeedData.workoutSeedVersion, 6);
+      expect(DefaultSeedData.workoutSeedVersion, 7);
       expect(workouts, hasLength(4));
       expect(workouts.every((day) => day.isGymWorkout), isTrue);
       expect(workouts.map((day) => day.dayNumber), [1, 2, 4, 6]);
@@ -31,7 +31,7 @@ void main() {
         ('Cable Crunch', '10-15'),
       ]);
       _expectPlan(workouts[1], const [
-        ('Lat Pulldown', '6-10'),
+        ('Pull-up / Assisted Pull-up', '6-10'),
         ('Chest-Supported Row', '8-12'),
         ('Single-Arm Cable Row', '10-12 per side'),
         ('Face Pull', '12-20'),
@@ -52,10 +52,10 @@ void main() {
         ('Reverse Crunch', '12-20'),
       ]);
       _expectPlan(workouts[3], const [
-        ('Dumbbell Shoulder Press', '6-10'),
-        ('Lateral Raise', '12-20'),
-        ('Cable Lateral Raise', '12-20'),
-        ('Rear Delt Fly', '12-20'),
+        ('Machine Shoulder Press', '6-10'),
+        ('Dumbbell Lateral Raise', '12-15'),
+        ('Rear Delt Fly', '12-15'),
+        ('Dumbbell Shrug', '10-15'),
         ('Incline Dumbbell Press', '8-12'),
         ('Low-to-High Cable Fly', '12-15'),
         ('Cable Curl', '10-15'),
@@ -76,7 +76,7 @@ void main() {
           ('1-2', '60 seconds'),
         ],
         'Upper B': [
-          ('2', '2-3 minutes'),
+          ('1-2', '2-3 minutes'),
           ('1-2', '2 minutes'),
           ('1-2', '90-120 seconds'),
           ('1-2', '60-90 seconds'),
@@ -110,7 +110,14 @@ void main() {
       };
 
       for (final day in workouts) {
-        expect(day.exercises.every((exercise) => exercise.sets == 3), isTrue);
+        expect(
+          day.exercises.every(
+            (exercise) =>
+                exercise.sets ==
+                (exercise.name == 'Dumbbell Lateral Raise' ? 4 : 3),
+          ),
+          isTrue,
+        );
         expect(
           day.exercises
               .map((exercise) => (exercise.targetRirText!, exercise.restText!)),
@@ -128,12 +135,13 @@ void main() {
       expect(names, isNot(contains('Farmer Carry')));
       expect(names, isNot(contains('Pallof Press')));
       expect(names, isNot(contains('Plank')));
+      expect(names, isNot(contains('Cable Lateral Raise')));
       expect(
           names,
           containsAll([
             'Flat Dumbbell Press',
             'Hanging Knee Raise',
-            'Cable Lateral Raise',
+            'Dumbbell Shrug',
             'Low-to-High Cable Fly',
           ]));
     });
@@ -151,14 +159,37 @@ void main() {
               exercise.restText != null),
           isTrue);
       expect(
-          workouts[3]
-              .exercises
-              .firstWhere((exercise) => exercise.name == 'Cable Lateral Raise')
-              .id,
-          isNot(workouts[3]
-              .exercises
-              .firstWhere((exercise) => exercise.name == 'Lateral Raise')
-              .id));
+        workouts[3]
+            .exercises
+            .firstWhere((exercise) => exercise.name == 'Dumbbell Shrug')
+            .id,
+        'upper-c-dumbbell-shrug',
+      );
+      expect(
+        workouts[1].exercises.first.name,
+        'Pull-up / Assisted Pull-up',
+      );
+      expect(workouts[1].exercises.first.alternativeText, 'Lat Pulldown');
+      expect(
+        workouts[3]
+            .exercises
+            .firstWhere((exercise) => exercise.name == 'Dumbbell Shrug')
+            .alternativeText,
+        'Barbell Shrug',
+      );
+      expect(
+        workouts[3]
+            .exercises
+            .firstWhere(
+              (exercise) => exercise.name == 'Dumbbell Lateral Raise',
+            )
+            .sets,
+        4,
+      );
+      expect(
+        workouts[3].exercises.where((exercise) => exercise.name == 'Face Pull'),
+        isEmpty,
+      );
       expect(
           workouts[3]
               .exercises
@@ -193,13 +224,14 @@ void main() {
         'Glutes': 3,
         'Calves': 3,
         'Shoulders': 3,
-        'Side delts': 6,
+        'Side delts': 4,
         'Rear delts': 3,
+        'Traps': 3,
       });
     });
   });
 
-  test('v5 migration preserves history, drafts, and unrelated Hive data',
+  test('v6 migration preserves history, drafts, and unrelated Hive data',
       () async {
     final directory = await Directory.systemTemp.createTemp('fitora-workout-');
     Hive.init(directory.path);
@@ -240,18 +272,18 @@ void main() {
       await box.put(entry.key, entry.value);
     }
     await box.put(StorageKeys.workouts, const <dynamic>[]);
-    await box.put(StorageKeys.workoutSeedVersion, 5);
+    await box.put(StorageKeys.workoutSeedVersion, 6);
 
     await LocalStorageService.forTesting(box).ensureWorkoutPlanCurrent();
 
     for (final entry in sentinels.entries) {
       expect(box.get(entry.key), entry.value, reason: entry.key);
     }
-    expect(box.get(StorageKeys.workoutSeedVersion), 6);
+    expect(box.get(StorageKeys.workoutSeedVersion), 7);
     final migrated = box.get(StorageKeys.workouts) as List<dynamic>;
     expect(migrated, hasLength(4));
     expect(migrated.map((day) => (day as Map)['id']),
-        everyElement(startsWith('upper-specialization-v6-day-')));
+        everyElement(startsWith('upper-specialization-v7-day-')));
   });
 }
 

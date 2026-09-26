@@ -39,7 +39,7 @@ void main() {
       'Flat Dumbbell Press': 'assets/exercises/flat_dumbbell_press.png',
       'Cable Fly': 'assets/exercises/cable_fly.png',
       'Hanging Knee Raise': 'assets/exercises/hanging_knee_raise.png',
-      'Cable Lateral Raise': 'assets/exercises/cable_lateral_raise.png',
+      'Dumbbell Shrug': 'assets/exercises/dumbbell_shrug.png',
       'Low-to-High Cable Fly': 'assets/exercises/low_to_high_cable_fly.png',
     };
     final exercisesByName = {

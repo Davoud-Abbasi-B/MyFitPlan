@@ -10,7 +10,7 @@ import '../../features/workout/models/workout_day_model.dart';
 import 'hypertrophy_workout_seed.dart';
 
 abstract final class DefaultSeedData {
-  static const int workoutSeedVersion = 6;
+  static const int workoutSeedVersion = 7;
 
   static List<WorkoutDay> workouts() => hypertrophyWorkoutPlan();
 
