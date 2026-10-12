@@ -76,6 +76,7 @@ class WorkoutSession {
     required this.workoutTitle,
     required this.workoutFocus,
     required this.exercises,
+    this.workoutDayId,
     this.sessionNote,
   });
 
@@ -83,6 +84,9 @@ class WorkoutSession {
   final String dateKey;
   final DateTime completedAt;
   final int workoutDayNumber;
+
+  /// Absent on legacy snapshots; never infer it from the new program.
+  final String? workoutDayId;
   final String workoutTitle;
   final String workoutFocus;
   final List<WorkoutExerciseRecord> exercises;
@@ -104,10 +108,11 @@ class WorkoutSession {
     };
 
     return WorkoutSession(
-      id: '$dateKey-day-${workoutDay.dayNumber}',
+      id: '$dateKey-${workoutDay.id}',
       dateKey: dateKey,
       completedAt: timestamp,
       workoutDayNumber: workoutDay.dayNumber,
+      workoutDayId: workoutDay.id,
       workoutTitle: workoutDay.title,
       workoutFocus: workoutDay.focus,
       exercises: workoutDay.exercises.map((exercise) {
@@ -135,6 +140,7 @@ class WorkoutSession {
         'dateKey': dateKey,
         'completedAt': completedAt.toIso8601String(),
         'workoutDayNumber': workoutDayNumber,
+        if (workoutDayId != null) 'workoutDayId': workoutDayId,
         'workoutTitle': workoutTitle,
         'workoutFocus': workoutFocus,
         'exercises': exercises.map((exercise) => exercise.toJson()).toList(),
@@ -160,6 +166,7 @@ class WorkoutSession {
       dateKey: normalizedDateKey,
       completedAt: completedAt,
       workoutDayNumber: json['workoutDayNumber'] as int? ?? 0,
+      workoutDayId: json['workoutDayId'] as String?,
       workoutTitle: json['workoutTitle'] as String? ?? '',
       workoutFocus: json['workoutFocus'] as String? ?? '',
       exercises: exerciseJson

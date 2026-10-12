@@ -817,27 +817,8 @@ class _ChecklistEntry {
   final int points;
 }
 
-WorkoutDay? _workoutForToday(List<WorkoutDay> workouts, DateTime now) {
-  final dayNumber = switch (now.weekday) {
-    DateTime.saturday => 1,
-    DateTime.sunday => 2,
-    DateTime.tuesday => 3,
-    DateTime.wednesday => 4,
-    DateTime.thursday => 5,
-    _ => null,
-  };
-
-  if (dayNumber == null) {
-    return null;
-  }
-
-  for (final workout in workouts) {
-    if (workout.dayNumber == dayNumber) {
-      return workout;
-    }
-  }
-  return null;
-}
+WorkoutDay? _workoutForToday(List<WorkoutDay> workouts, DateTime now) =>
+    WorkoutDay.scheduledFor(workouts, now);
 
 String _formatNumber(double value) {
   final raw =

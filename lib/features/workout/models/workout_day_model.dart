@@ -25,6 +25,17 @@ class WorkoutDay {
   final int cardioMinutes;
   final WorkoutLocation location;
 
+  /// Calendar day in a Saturday-first week; shared by dashboard and session UI.
+  bool isScheduledOn(DateTime date) =>
+      dayNumber == ((date.weekday + 1) % 7) + 1;
+
+  static WorkoutDay? scheduledFor(List<WorkoutDay> workouts, DateTime date) {
+    for (final workout in workouts) {
+      if (workout.isScheduledOn(date)) return workout;
+    }
+    return null;
+  }
+
   bool get isGymWorkout => location == WorkoutLocation.gym;
   bool get isOutdoorWorkout => location == WorkoutLocation.outdoor;
 

@@ -391,19 +391,22 @@ class LocalStorageService {
   }
 
   Future<bool> saveWorkoutSession(WorkoutSession session) async {
-    final sessions = await loadWorkoutSessions();
-    final duplicate = sessions.any(
-      (existing) =>
-          existing.dateKey == session.dateKey &&
-          existing.workoutDayNumber == session.workoutDayNumber,
-    );
+    final snapshots = _mapList(StorageKeys.workoutSessions);
+    final duplicate = snapshots.map(WorkoutSession.fromJson).any(
+          (existing) =>
+              existing.dateKey == session.dateKey &&
+              (session.workoutDayId != null
+                  ? existing.workoutDayId == session.workoutDayId
+                  : existing.workoutDayId == null &&
+                      existing.workoutDayNumber == session.workoutDayNumber),
+        );
     if (duplicate) return false;
 
-    sessions.add(session);
-    sessions.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    // Preserve legacy snapshots verbatim; loadWorkoutSessions sorts for display.
+    snapshots.add(session.toJson());
     await _box.put(
       StorageKeys.workoutSessions,
-      sessions.map((item) => item.toJson()).toList(),
+      snapshots,
     );
     return true;
   }
