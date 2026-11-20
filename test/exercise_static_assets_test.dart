@@ -48,6 +48,7 @@ void main() {
       expect(path, isNotNull, reason: exercise.name);
       expect(path, exercise.imageAssetPath);
       expect(path, endsWith('.png'));
+      expect(path, isNot(contains('placeholder')));
       expect(path, isNot(contains('/motion/')));
       final fallback = Exercise(
           id: 'fallback', name: exercise.name, type: exercise.type, notes: '');
@@ -62,15 +63,16 @@ void main() {
 
   test('new hypertrophy exercises resolve to their static images', () {
     const expectedPaths = {
+      'High-to-Low Cable Fly': 'assets/exercises/high_to_low_cable_fly.png',
+      'Lat Pulldown': 'assets/exercises/lat_pulldown.png',
+      'Single-Arm Cable Row': 'assets/exercises/single_arm_cable_row.png',
+      'Rope Triceps Pushdown': 'assets/exercises/rope_triceps_pushdown.png',
+      'Face Pull': 'assets/exercises/face_pull.png',
       'Pec Deck': 'assets/exercises/pec_deck.png',
       'Bayesian Cable Curl': 'assets/exercises/bayesian_cable_curl.png',
-      'Lying Leg Curl': 'assets/exercises/leg_curl.png',
-      'Assisted Pull-up': 'assets/exercises/assisted_pullup.png',
       'Seated Row': 'assets/exercises/seated_row.png',
       'Barbell Shrug': 'assets/exercises/barbell_shrug.png',
       'Bulgarian Split Squat': 'assets/exercises/bulgarian_split_squat.png',
-      'Seated Calf Raise': 'assets/exercises/seated_calf_raise.png',
-      'Seated Leg Curl': 'assets/exercises/seated_leg_curl.png',
       'Dumbbell Shoulder Press': 'assets/exercises/dumbbell_shoulder_press.png',
     };
     final exercisesByName = {

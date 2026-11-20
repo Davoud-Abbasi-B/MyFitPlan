@@ -44,3 +44,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 release_output/*.apk
+release_output/v9-qa/

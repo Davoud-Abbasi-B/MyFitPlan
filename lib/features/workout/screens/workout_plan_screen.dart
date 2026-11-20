@@ -130,18 +130,18 @@ Future<void> _showProgramGuide(BuildContext context) {
     (
       title: 'ساختار هفتگی و ریکاوری',
       items: [
-        'شنبه: Upper Body A؛ یکشنبه: Lower Body A.',
+        'شنبه: Upper A؛ یکشنبه: Lower.',
         'دوشنبه: استراحت.',
-        'سه‌شنبه: Upper Body B؛ چهارشنبه: Lower Body B.',
+        'سه‌شنبه: Upper B؛ چهارشنبه: Upper C (سبک‌تر).',
         'پنجشنبه و جمعه: استراحت.',
       ],
     ),
     (
       title: 'حجم هفتگی تقریبی برنامه',
       items: [
-        'سینه: ۱۲ ست؛ پشت/لت: ۹ ست؛ سرشانه مستقیم: ۱۳ ست؛ کول: ۳ ست',
-        'جلو بازو/براکیالیس: ۶ ست؛ پشت بازو: ۶ ست؛ ساعد: ۳ ست مستقیم',
-        'چهارسر: ۱۵ ست؛ همسترینگ: ۹ ست؛ سرینی: ۳ ست؛ ساق: ۶ ست مستقیم',
+        'سینه: ۱۵ ست؛ پشت/لت: ۱۵ ست؛ سرشانه مستقیم: ۱۵ ست؛ کول: ۳ ست',
+        'جلو بازو/براکیالیس: ۹ ست؛ پشت بازو: ۹ ست؛ ساعد: ۳ ست مستقیم',
+        'چهارسر: ۱۲ ست؛ همسترینگ: ۳ ست؛ سرینی: ۳ ست مستقیم؛ ساق: ۳ ست',
       ],
     ),
     (
@@ -1508,11 +1508,12 @@ class _ExerciseLogEditor extends ConsumerWidget {
           : '${exercise.sets ?? 0}×${exercise.reps ?? ''}',
     };
     final metadata = <String>[
-      prescription,
+      '\u2066$prescription\u2069',
       if ((exercise.targetRirText ?? '').isNotEmpty)
-        'RIR ${exercise.targetRirText}',
-      if ((exercise.restText ?? '').isNotEmpty) 'استراحت ${exercise.restText}',
-      if (exercise.notes.isNotEmpty) exercise.notes,
+        '\u2066RIR ${exercise.targetRirText}\u2069',
+      if ((exercise.restText ?? '').isNotEmpty)
+        'استراحت \u2066${exercise.restText}\u2069',
+      if (exercise.notes.isNotEmpty) '\u2068${exercise.notes}\u2069',
     ];
     return metadata.join(' | ');
   }
@@ -1982,7 +1983,9 @@ String? resolvedExerciseImagePath(Exercise exercise) {
     'barbell shrug': 'assets/exercises/barbell_shrug.png',
     'seated leg curl': 'assets/exercises/seated_leg_curl.png',
     'lying leg curl': 'assets/exercises/leg_curl.png',
-    'rope triceps pushdown': 'assets/exercises/triceps_pushdown.png',
+    'rope triceps pushdown': 'assets/exercises/rope_triceps_pushdown.png',
+    'high-to-low cable fly': 'assets/exercises/high_to_low_cable_fly.png',
+    'single-arm cable row': 'assets/exercises/single_arm_cable_row.png',
     'machine chest press': 'assets/exercises/chest_press.png',
     'assisted pull-up': 'assets/exercises/assisted_pullup.png',
     'pec deck': 'assets/exercises/pec_deck.png',
